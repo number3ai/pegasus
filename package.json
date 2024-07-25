@@ -1,0 +1,20 @@
+{
+  "name": "aws",
+  "main": "index.ts",
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^18.19.41",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "@pulumi/aws": "^6.45.0",
+    "@pulumi/awsx": "^2.13.0",
+    "@pulumi/eks": "^2.7.5",
+    "@pulumi/github": "^6.2.3",
+    "@pulumi/kubernetes": "^4.15.0",
+    "@pulumi/pulumi": "^3.125.0",
+    "@pulumi/random": "^4.16.3",
+    "@pulumi/tls": "^5.0.4",
+    "handlebars": "^4.7.8"
+  }
+}
