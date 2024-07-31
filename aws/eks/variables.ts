@@ -17,6 +17,39 @@ export const dnsPrivateDomain = "domain.com";
 export const eksVersion = "1.30";
 export const eksClusterName = "dev";
 
+interface EksAddon {
+  name: string;
+  version: string;
+  configuration?: Map<string, any>;
+}
+
+export const eksAddons: EksAddon[] = [
+  {
+    name: "aws-ebs-csi-driver",
+    version: "v1.32.0-eksbuild.1",
+  },
+  // {
+  //   name: "aws-guardduty-agent",
+  //   version: "v1.6.1-eksbuild.1",
+  // },
+  {
+    name: "coredns",
+    version: "v1.11.1-eksbuild.9",
+  },
+  {
+    name: "eks-pod-identity-agent",
+    version: "v1.30.0-eksbuild.1",
+  },
+  {
+    name: "kube-proxy",
+    version: "v1.30.0-eksbuild.3",
+  },
+  {
+    name: "vpc-cni",
+    version: "v1.18.3-eksbuild.1",
+  },
+]
+
 // EKS Node Group Configuration
 export const minSize = 3;
 export const maxSize = 10;

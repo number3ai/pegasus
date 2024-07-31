@@ -1,6 +1,6 @@
+import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import * as eks from "@pulumi/eks";
-import * as kubernetes from "@pulumi/kubernetes";
 
 import { awsProvider } from "./providers";
 import { awsProfile, desiredSize, eksClusterName, eksVersion, instanceType, minSize, maxSize, tags } from "./variables";
@@ -22,6 +22,7 @@ export const vpc = new awsx.ec2.Vpc(`${eksClusterName}-vpc`,
 // Create an EKS cluster without node group configuration.
 export const cluster = new eks.Cluster(`${eksClusterName}-cluster`,
   {
+    createOidcProvider: true,
     enabledClusterLogTypes: [
       "api",
       "audit",
@@ -36,6 +37,16 @@ export const cluster = new eks.Cluster(`${eksClusterName}-cluster`,
     nodeRootVolumeSize: 200,
     providerCredentialOpts: { profileName: awsProfile },
     subnetIds: vpc.publicSubnetIds,
+    storageClasses: {
+      gp2: {
+        allowVolumeExpansion: true,
+        default: true,
+        encrypted: true,
+        reclaimPolicy: "Delete",
+        type: "gp2",
+        volumeBindingMode: "Immediate",
+      },
+    },
     tags: tags,
     version: eksVersion,
     vpcId: vpc.vpcId,
@@ -45,6 +56,29 @@ export const cluster = new eks.Cluster(`${eksClusterName}-cluster`,
     provider: awsProvider,
   },
 );
+
+// Create the IAM role for EKS node group
+const eksNodeRole = new aws.iam.Role(`${eksClusterName}-node-role`, {
+  assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
+    Service: "ec2.amazonaws.com",
+  }),
+  tags: tags,
+});
+
+// Attach required AmazonEKSWorkerNodePolicy policies to the IAM role
+const requiredPolicies = [
+  "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+  "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+  "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+  "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+];
+
+requiredPolicies.forEach((policyArn, index) => {
+  new aws.iam.RolePolicyAttachment(`${eksClusterName}-required-policy-${index}`, {
+    role: cluster.instanceRoles[0].name,
+    policyArn: policyArn,
+  });
+});
 
 // Create an EKS managed node group.
 new eks.ManagedNodeGroup(`${eksClusterName}-node-group`,
@@ -67,23 +101,3 @@ new eks.ManagedNodeGroup(`${eksClusterName}-node-group`,
     provider: awsProvider,
   },
 );
-
-// Create a default EBS storage class for the EKS cluster.
-
-// Create a default EBS storage class for the EKS cluster using gp2 EBS volume
-const gp2StorageClass = new kubernetes.storage.v1.StorageClass("storage-gp2", {
-  metadata: {
-      name: "gp2-default",
-      annotations: {
-          "storageclass.kubernetes.io/is-default-class": "true",
-      },
-  },
-  provisioner: "kubernetes.io/aws-ebs",
-  parameters: {
-      type: "gp2",
-  },
-  reclaimPolicy: "Delete",
-  volumeBindingMode: "Immediate",
-}, {
-  provider: cluster.provider,
-});
