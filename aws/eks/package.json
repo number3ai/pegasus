@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@pulumi/aws": "^6.45.0",
+    "@pulumi/aws-iam": "^0.2.0",
     "@pulumi/awsx": "^2.13.0",
     "@pulumi/eks": "^2.7.6",
     "@pulumi/github": "^6.2.3",

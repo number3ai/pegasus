@@ -1,3 +1,5 @@
+import { EksAddon } from "./types";
+
 // DevOps General Configuration
 export const environment = "dev";
 
@@ -17,21 +19,12 @@ export const dnsPrivateDomain = "domain.com";
 export const eksVersion = "1.30";
 export const eksClusterName = "dev";
 
-interface EksAddon {
-  name: string;
-  version: string;
-  configuration?: Map<string, any>;
-}
-
 export const eksAddons: EksAddon[] = [
   {
     name: "aws-ebs-csi-driver",
     version: "v1.32.0-eksbuild.1",
+    enableIRSA: true,
   },
-  // {
-  //   name: "aws-guardduty-agent",
-  //   version: "v1.6.1-eksbuild.1",
-  // },
   {
     name: "coredns",
     version: "v1.11.1-eksbuild.9",
@@ -47,6 +40,7 @@ export const eksAddons: EksAddon[] = [
   {
     name: "vpc-cni",
     version: "v1.18.3-eksbuild.1",
+    enableIRSA: true,
   },
 ]
 
