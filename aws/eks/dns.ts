@@ -2,7 +2,7 @@ import * as aws from "@pulumi/aws";
 
 import { vpc } from "./eks";
 import { awsProvider } from "./providers";
-import { dnsPrivateDomain, dnsPublicDomain, region } from "./variables";
+import { dnsPrivateDomain, dnsPublicDomain, region, tags } from "./variables";
 
 // Create a private DNS zone 'int.brandon.com'
 const privateZone = new aws.route53.Zone("dns-int-hosted-zone", {
@@ -24,12 +24,10 @@ const publicZone = new aws.route53.Zone("dns-public-hosted-zone", {
 
 // Define a wildcard SSL/TLS certificate for int.brandon.com
 const wildcardCertificate = new aws.acm.Certificate("dns-int-wildcard-cert", {
-    domainName: `*.dnsPrivateDomain`,
+    domainName: `*.${dnsPrivateDomain}`,
     validationMethod: "DNS",
-    subjectAlternativeNames: ["int.brandon.com"],  // Optionally include additional SANs if needed
-    tags: {
-        Name: "Wildcard Certificate for int.brandon.com",
-    },
+    subjectAlternativeNames: [dnsPrivateDomain],  // Optionally include additional SANs if needed
+    tags: tags,
 }, { provider: awsProvider });
 
 // Export the IDs of the created zones for reference

@@ -1,6 +1,6 @@
 import * as aws from "@pulumi/aws";
 import * as github from "@pulumi/github";
-import * as k8s from "@pulumi/kubernetes";
+import * as kubernetes from "@pulumi/kubernetes";
 
 import { cluster } from "./eks";
 import { awsProfile, githubOwner, region } from "./variables";
@@ -17,12 +17,7 @@ export const githubProvider = new github.Provider("github", {
   owner: githubOwner,
 });
 
-// Export the cluster's kubeconfig.
-export const kubeProvider = new k8s.Provider("k8s",
-  {
-    kubeconfig: cluster.kubeconfig,
-  },
-  {
-    provider: cluster.provider,
-  },
+// Create the Kubernetes provider using the cluster's kubeconfig
+export const kubeProvider = cluster.kubeconfig.apply(kubeconfig =>
+  new kubernetes.Provider("k8s", { kubeconfig })
 );
