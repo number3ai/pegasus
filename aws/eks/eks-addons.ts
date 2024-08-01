@@ -1,4 +1,5 @@
 import * as aws from "@pulumi/aws";
+import * as pulumi from "@pulumi/pulumi";
 
 import { cluster } from "./eks";
 import { eksAddons, eksClusterName, tags } from "./variables";
@@ -11,23 +12,24 @@ for (const addon of eksAddons) {
     // Create the IAM role for the EBS CSI driver
     const irsaRole = new aws.iam.Role(`${eksClusterName}-role-${addon.name}`, {
       name: `${addon.name}-sa`,
-      assumeRolePolicy: JSON.stringify({
+      assumeRolePolicy: pulumi.all([oidcProviderArn, oidcProviderUrl]).apply(([arn, url]) => JSON.stringify({
         Version: "2012-10-17",
         Statement: [
           {
             Action: "sts:AssumeRoleWithWebIdentity",
             Effect: "Allow",
             Principal: {
-              Federated: oidcProviderArn,
+              Federated: arn,
             },
             Condition: {
               StringEquals: {
-                [`${oidcProviderUrl}:sub`]: `system:serviceaccount:${addon.namespace || "kube-system"}:${addon.name}-sa`,
+                [`${url}:aud`]: "sts.amazonaws.com",
+                [`${url}:sub`]: `system:serviceaccount:${addon.namespace || "kube-system" }:${addon.name}-sa`,
               },
             },
           },
         ],
-      }),
+      })),
       tags: tags,
     }, {
       dependsOn: [ cluster ],
