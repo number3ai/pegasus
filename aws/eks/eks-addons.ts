@@ -1,38 +1,66 @@
 import * as aws from "@pulumi/aws";
-import * as iam from "@pulumi/aws-iam";
 
 import { cluster } from "./eks";
 import { eksAddons, eksClusterName, tags } from "./variables";
 
 for (const addon of eksAddons) {
-    if (addon.enableIRSA ) {
-        const roleForServiceAccountsEks = new iam.RoleForServiceAccountsEks("aws-iam-example-role-for-service-accounts-eks", {
-            role: {
-                name: addon.name
+  if (addon.enableIRSA) {
+    // Create the IAM role for the EBS CSI driver
+    const irsaRole = new aws.iam.Role(`${eksClusterName}-role-${addon.name}`, {
+      name: `${addon.name}-sa`,
+      assumeRolePolicy: {
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Action: "sts:AssumeRoleWithWebIdentity",
+            Effect: "Allow",
+            Principal: {
+              Federated: cluster.core.oidcProvider?.arn || "",
             },
-            tags: tags,
-            oidcProviders: {
-                main: {
-                    providerArn: cluster.core.oidcProvider?.url,
-                    namespaceServiceAccounts: ["default:my-app", "canary:my-app"],
-                }
+            Condition: {
+              StringEquals: {
+                [`${cluster.core.oidcProvider?.url}:sub`]: `system:serviceaccount:${addon.namespace || "kube-system"}:${addon.name}-sa`,
+              },
             },
-            policies: {
-                vpnCni: {
-                    attach: true,
-                    enableIpv4: true,
-                },
-            },
-        });
-    }
-
-    new aws.eks.Addon(`${eksClusterName}-${addon.name}`, {
-        addonName: addon.name,
-        addonVersion: addon.version,
-        clusterName: eksClusterName,
-        configurationValues: JSON.stringify(addon?.configuration ?? {}),
-        resolveConflictsOnCreate: "OVERWRITE",
-        serviceAccountRoleArn: "",
-        tags: tags,
+          },
+        ],
+      },
+      tags: tags,
     });
+    
+    if (addon.name  === "aws-ebs-csi-driver"){
+      new aws.iam.RolePolicyAttachment(`${eksClusterName}-policy-attachment-${addon.name}`, {
+          role: irsaRole.name,
+          policyArn: "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy",
+      });
+
+      new aws.iam.RolePolicy(`${eksClusterName}-policy-attachment-${addon.name}-kms`, {
+        role: irsaRole.name,
+        policy: JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [
+                {
+                    Effect: "Allow",
+                    Action: [
+                        "kms:Decrypt",
+                        "kms:GenerateDataKeyWithoutPlaintext",
+                        "kms:CreateGrant"
+                    ],
+                    Resource: "*",
+                },
+            ],
+        }),
+      });
+    }
+  };
+
+  // new aws.eks.Addon(`${eksClusterName}-${addon.name}`, {
+  //   addonName: addon.name,
+  //   addonVersion: addon.version,
+  //   clusterName: eksClusterName,
+  //   configurationValues: JSON.stringify(addon?.configuration ?? {}),
+  //   resolveConflictsOnCreate: "OVERWRITE",
+  //   serviceAccountRoleArn: "",
+  //   tags: tags,
+  // });
 }

@@ -46,8 +46,8 @@ export const eksAddons: EksAddon[] = [
 
 // EKS Node Group Configuration
 export const minSize = 3;
-export const maxSize = 10;
-export const desiredSize = 5;
+export const maxSize = 5;
+export const desiredSize = 3;
 export const instanceType = "t3.medium";
 
 // ArgoCD Configuration
