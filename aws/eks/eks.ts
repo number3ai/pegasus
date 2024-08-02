@@ -29,7 +29,7 @@ export const allVpcSubnets = pulumi.all([vpc.privateSubnetIds, vpc.publicSubnetI
                                    .apply(([privateSubnetIds, publicSubnetIds]) => privateSubnetIds.concat(publicSubnetIds));
 
 // Create 3 IAM Roles and matching InstanceProfiles to use with the nodegroups.
-const roles = iam.createRoles(eksClusterName, 3);
+const roles = iam.createRoles(eksClusterName, 1);
 const instanceProfiles = iam.createInstanceProfiles(eksClusterName, roles);
 
 // Create an EKS cluster without node group configuration.
@@ -73,8 +73,8 @@ export const cluster = new eks.Cluster(`${eksClusterName}-cluster`,
 );
 
 new eks.NodeGroup(`${eksClusterName}-nodegroup`, {
-  cluster: cluster,
   amiId: eksNodesAMI,
+  cluster: cluster,
   clusterIngressRule: cluster.eksClusterIngressRule,
   desiredCapacity: desiredSize,
   instanceProfile: instanceProfiles[0],
