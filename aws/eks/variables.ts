@@ -18,6 +18,7 @@ export const dnsPrivateDomain = "domain.com";
 // EKS General Configuration
 export const eksVersion = "1.30";
 export const eksClusterName = "dev";
+export const eksNodeRootVolumeSize = 200;
 
 export const eksAddons: EksAddon[] = [
   {
@@ -49,6 +50,7 @@ export const minSize = 3;
 export const maxSize = 5;
 export const desiredSize = 3;
 export const instanceType = "t3.medium";
+export const eksNodesAMI = "ami-0aed8dba35aa48c75";
 
 // ArgoCD Configuration
 export const argoCdAppsVersion = "2.0.0";

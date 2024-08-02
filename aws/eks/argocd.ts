@@ -46,6 +46,7 @@ const secret = new aws.secretsmanager.Secret("argocd-secret",
   {
     name: "dev/argocd/credentials",
     description: "ArgoCD admin credentials",
+    recoveryWindowInDays: 0, // Force deletion without recovery
     tags: tags,
   },
   {
