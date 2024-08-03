@@ -27,23 +27,23 @@ export const eksAddons: EksAddon[] = [
     version: "v1.32.0-eksbuild.1",
     enableIRSA: true,
   },
-  {
-    name: "coredns",
-    version: "v1.11.1-eksbuild.9",
-  },
-  {
-    name: "eks-pod-identity-agent",
-    version: "v1.30.0-eksbuild.1",
-  },
-  {
-    name: "kube-proxy",
-    version: "v1.30.0-eksbuild.3",
-  },
-  {
-    name: "vpc-cni",
-    version: "v1.18.3-eksbuild.1",
-    enableIRSA: true,
-  },
+  // {
+  //   name: "coredns",
+  //   version: "v1.11.1-eksbuild.9",
+  // },
+  // {
+  //   name: "eks-pod-identity-agent",
+  //   version: "v1.30.0-eksbuild.1",
+  // },
+  // {
+  //   name: "kube-proxy",
+  //   version: "v1.30.0-eksbuild.3",
+  // },
+  // {
+  //   name: "vpc-cni",
+  //   version: "v1.18.3-eksbuild.1",
+  //   enableIRSA: true,
+  // },
 ]
 
 // EKS Node Group Configuration

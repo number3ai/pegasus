@@ -27,23 +27,22 @@ export const instanceRoles = iam.createRoles(`${eksClusterName}-instance-role`, 
 
 // Debug: Print the VPC configuration
 eksVpc.vpcId.apply(() => {
-  console.log("----------[ VPC Configuration ]---------------");
-  console.log("[+] VPC ID: ", eksVpc.vpcId);
-  console.log("[+] Public Subnet IDs: ")
+  console.debug("----------[ VPC Configuration ]---------------");
+  console.debug("[+] VPC ID: ", eksVpc.vpc.id);
+  console.debug("[+] Public Subnet IDs: ")
   eksVpc.publicSubnetIds.apply(subnetIds => {
     subnetIds.forEach((subnet, index) => {
-      console.log(`\t[*] Using Public Subnet ${index}: ${subnet}`);
+      console.debug(`\t[*] Using Public Subnet ${index}: ${subnet}`);
     });
   });
-  console.log("[+] Private Subnet IDs: ")
+  console.debug("[+] Private Subnet IDs: ")
   eksVpc.privateSubnetIds.apply(subnetIds => {  
     subnetIds.forEach((subnet, index) => {
-      console.log(`\t[*] Using Private Subnet ${index}: ${subnet}`);
+      console.debug(`\t[*] Using Private Subnet ${index}: ${subnet}`);
     }); 
   });
-  console.log();
+  console.debug();
 });
-
 
 // Create an EKS cluster without node group configuration. We will add this later.
 export const cluster = new eks.Cluster(`${eksClusterName}-cluster`,
@@ -87,7 +86,6 @@ eks.createManagedNodeGroup(`${eksClusterName}-node-group`,
   {
     cluster: cluster,
     enableIMDSv2: true,
-    diskSize: eksNodeRootVolumeSize,
     instanceTypes: [instanceType],
     labels: { 
       ondemand: "true", 
@@ -108,16 +106,16 @@ export const kubeconfig = cluster.kubeconfig;
 
 // Debug: Print the EKS cluster configuration
 cluster.core.cluster.name.apply(eksClusterName => {
-  console.log("----------[ EKS Cluster Configuration ]---------------");
-  console.log(`\t[+] Using Cluster Name: ${eksClusterName}`);
-  console.log(`\t[+] Using EKS Version: ${eksVersion}\n`);
+  console.debug("----------[ EKS Cluster Configuration ]---------------");
+  console.debug(`\t[+] Using Cluster Name: ${eksClusterName}`);
+  console.debug(`\t[+] Using EKS Version: ${eksVersion}\n`);
 
-  console.log("----------[ EKS Node Group Configuration ]---------------");
-  console.log("\t[+] Node Group Name: ", `${eksClusterName}-nodegroup`);
-  console.log(`\t[+] Using Instance Type: ${instanceType}`);
-  console.log(`\t[+] Using Root Volume Size: ${eksNodeRootVolumeSize}`);
-  console.log("\t[+] Scaling Configuration");
-  console.log(`\t\t[*] Using Desired Size: ${desiredSize}`);
-  console.log(`\t\t[*] Using Min Size: ${minSize}`);
-  console.log(`\t\t[*] Using Max Size: ${maxSize}\n`);
+  console.debug("----------[ EKS Node Group Configuration ]---------------");
+  console.debug("\t[+] Node Group Name: ", `${eksClusterName}-nodegroup`);
+  console.debug(`\t[+] Using Instance Type: ${instanceType}`);
+  console.debug(`\t[+] Using Root Volume Size: ${eksNodeRootVolumeSize}`);
+  console.debug("\t[+] Scaling Configuration");
+  console.debug(`\t\t[*] Using Desired Size: ${desiredSize}`);
+  console.debug(`\t\t[*] Using Min Size: ${minSize}`);
+  console.debug(`\t\t[*] Using Max Size: ${maxSize}\n`);
 });

@@ -4,7 +4,8 @@ import * as kubernetes from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import * as tls from "@pulumi/tls";
 
-import { awsProvider, githubProvider, kubeProvider } from "./providers";
+import { kubeconfig } from "./eks";
+import { awsProvider, githubProvider } from "./providers";
 import { argoCdAppsVersion, argoCdVersion } from "./variables";
 import { eksClusterName, environment, tags } from "./variables";
 import { githubOwner, githubBootloaderPath, githubBootloaders, githubRepository } from "./variables";
@@ -68,22 +69,9 @@ new aws.secretsmanager.SecretVersion("argocd-secret-version",
 
 
 /* ArgoCD Setup */
-kubeProvider.apply(provider => {
+kubeconfig.apply(provider => {
   // ArgoCD Installation
   // Ensure Argo CD CRDs are installed before creating Helm charts
-
-  // const argoNamespace = new kubernetes.core.v1.Namespace("argocd-namespace",
-  //   {
-  //     metadata: {
-  //       name: "argocd",
-  //       namespace: "argocd",
-  //     },
-  //   },
-  //   {
-  //     provider: provider,
-  //   },
-  // );
-
   const argocd = new kubernetes.helm.v3.Release("argocd",
     {
       chart: "argo-cd",
@@ -91,11 +79,11 @@ kubeProvider.apply(provider => {
       createNamespace: true,
       namespace: "argocd",
       version: argoCdVersion,
-  
+
       repositoryOpts: {
         repo: "https://argoproj.github.io/argo-helm",
       },
-  
+
       values: {
         configs: {
           params: {
