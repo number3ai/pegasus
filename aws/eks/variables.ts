@@ -19,6 +19,7 @@ export const dnsPrivateDomain = "domain.com";
 export const eksVersion = "1.30";
 export const eksClusterName = "dev";
 export const eksNodeRootVolumeSize = 200;
+export const eksVPCCIDRBlock = "10.100.0.0/16";
 
 export const eksAddons: EksAddon[] = [
   {

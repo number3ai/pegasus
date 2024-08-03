@@ -1,17 +1,16 @@
-import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import * as eks from "@pulumi/eks";
-import * as pulumi from "@pulumi/pulumi";
 
 import * as iam from "./eks-iam";
-import { awsProfile, desiredSize, eksClusterName, eksNodesAMI, eksNodeRootVolumeSize, eksVersion } from "./variables";
-import { instanceType, minSize, maxSize, tags } from "./variables";
+
+import { desiredSize, eksClusterName, eksNodeRootVolumeSize, eksVersion } from "./variables";
+import { eksVPCCIDRBlock, instanceType, minSize, maxSize, tags } from "./variables";
 
 // Create a VPC for our cluster.
-export const vpc = new awsx.ec2.Vpc(`${eksClusterName}-vpc`,
+export const eksVpc = new awsx.ec2.Vpc(`${eksClusterName}-vpc`,
   {
     assignGeneratedIpv6CidrBlock: false,
-    cidrBlock: "10.100.0.0/16",
+    cidrBlock: eksVPCCIDRBlock,
     enableDnsSupport: true,
     enableNetworkAddressUsageMetrics: true,
     subnetStrategy: "Auto",
@@ -23,16 +22,30 @@ export const vpc = new awsx.ec2.Vpc(`${eksClusterName}-vpc`,
   }
 );
 
-// Export VPC ID and Subnets.
-export const vpcId = vpc.vpcId;
-export const allVpcSubnets = pulumi.all([vpc.privateSubnetIds, vpc.publicSubnetIds])
-                                   .apply(([privateSubnetIds, publicSubnetIds]) => privateSubnetIds.concat(publicSubnetIds));
+// Create an instance role for the EKS cluster.
+export const instanceRoles = iam.createRoles(`${eksClusterName}-instance-role`, 3);
 
-// Create 3 IAM Roles and matching InstanceProfiles to use with the nodegroups.
-const roles = iam.createRoles(eksClusterName, 1);
-const instanceProfiles = iam.createInstanceProfiles(eksClusterName, roles);
+// Debug: Print the VPC configuration
+eksVpc.vpcId.apply(() => {
+  console.log("----------[ VPC Configuration ]---------------");
+  console.log("[+] VPC ID: ", eksVpc.vpcId);
+  console.log("[+] Public Subnet IDs: ")
+  eksVpc.publicSubnetIds.apply(subnetIds => {
+    subnetIds.forEach((subnet, index) => {
+      console.log(`\t[*] Using Public Subnet ${index}: ${subnet}`);
+    });
+  });
+  console.log("[+] Private Subnet IDs: ")
+  eksVpc.privateSubnetIds.apply(subnetIds => {  
+    subnetIds.forEach((subnet, index) => {
+      console.log(`\t[*] Using Private Subnet ${index}: ${subnet}`);
+    }); 
+  });
+  console.log();
+});
 
-// Create an EKS cluster without node group configuration.
+
+// Create an EKS cluster without node group configuration. We will add this later.
 export const cluster = new eks.Cluster(`${eksClusterName}-cluster`,
   {
     createOidcProvider: true,
@@ -44,18 +57,15 @@ export const cluster = new eks.Cluster(`${eksClusterName}-cluster`,
       "controllerManager",
       "scheduler",
     ],
-    endpointPrivateAccess: true,
     endpointPublicAccess: true,
-    instanceRoles: roles,
+    instanceRoles: instanceRoles,
     name: eksClusterName,
     nodeAssociatePublicIpAddress: false,
     nodeRootVolumeEncrypted: true,
     nodeRootVolumeSize: eksNodeRootVolumeSize,
-    providerCredentialOpts: { 
-      profileName: awsProfile 
-    },
+    privateSubnetIds: eksVpc.privateSubnetIds,
+    publicSubnetIds: eksVpc.publicSubnetIds,
     skipDefaultNodeGroup: true,
-    subnetIds: allVpcSubnets,
     storageClasses: {
       gp2: {
         allowVolumeExpansion: true,
@@ -68,28 +78,46 @@ export const cluster = new eks.Cluster(`${eksClusterName}-cluster`,
     },
     tags: tags,
     version: eksVersion,
-    vpcId: vpc.vpcId,
+    vpcId: eksVpc.vpcId,
   }
 );
 
-new eks.NodeGroup(`${eksClusterName}-nodegroup`, {
-  amiId: eksNodesAMI,
-  cluster: cluster,
-  clusterIngressRule: cluster.eksClusterIngressRule,
-  desiredCapacity: desiredSize,
-  instanceProfile: instanceProfiles[0],
-  instanceType: instanceType,
-  maxSize: maxSize,
-  minSize: minSize,
-  nodeAssociatePublicIpAddress: false,
-  nodeRootVolumeSize: eksNodeRootVolumeSize,
-  nodeRootVolumeEncrypted: true,
-  nodeSecurityGroup: cluster.nodeSecurityGroup,
-  labels: {
-    amiId: eksNodesAMI
+// Create an EKS managed node group.
+eks.createManagedNodeGroup(`${eksClusterName}-node-group`,
+  {
+    cluster: cluster,
+    enableIMDSv2: true,
+    diskSize: eksNodeRootVolumeSize,
+    instanceTypes: [instanceType],
+    labels: { 
+      ondemand: "true", 
+    },
+    nodeGroupName: `${eksClusterName}-nodegroup`,
+    nodeRoleArn: cluster.instanceRoles[0].arn,
+    scalingConfig: {
+      desiredSize: desiredSize,
+      maxSize: maxSize,
+      minSize: minSize,
+    },
+    tags: tags,
   },
-}, {
-  providers: { 
-    kubernetes: cluster.provider
-  },
+);
+
+// Export the cluster's kubeconfig.
+export const kubeconfig = cluster.kubeconfig;
+
+// Debug: Print the EKS cluster configuration
+cluster.core.cluster.name.apply(eksClusterName => {
+  console.log("----------[ EKS Cluster Configuration ]---------------");
+  console.log(`\t[+] Using Cluster Name: ${eksClusterName}`);
+  console.log(`\t[+] Using EKS Version: ${eksVersion}\n`);
+
+  console.log("----------[ EKS Node Group Configuration ]---------------");
+  console.log("\t[+] Node Group Name: ", `${eksClusterName}-nodegroup`);
+  console.log(`\t[+] Using Instance Type: ${instanceType}`);
+  console.log(`\t[+] Using Root Volume Size: ${eksNodeRootVolumeSize}`);
+  console.log("\t[+] Scaling Configuration");
+  console.log(`\t\t[*] Using Desired Size: ${desiredSize}`);
+  console.log(`\t\t[*] Using Min Size: ${minSize}`);
+  console.log(`\t\t[*] Using Max Size: ${maxSize}\n`);
 });

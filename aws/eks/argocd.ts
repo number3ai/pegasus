@@ -44,7 +44,7 @@ const argoAdminPassword = new random.RandomPassword("argocd-admin-password", {
 // Store the ArgoCD admin password in AWS Secrets Manager.
 const secret = new aws.secretsmanager.Secret("argocd-secret",
   {
-    name: "dev/argocd/credentials",
+    name: `${eksClusterName}/argocd/credentials`,
     description: "ArgoCD admin credentials",
     recoveryWindowInDays: 0, // Force deletion without recovery
     tags: tags,
@@ -71,37 +71,25 @@ new aws.secretsmanager.SecretVersion("argocd-secret-version",
 kubeProvider.apply(provider => {
   // ArgoCD Installation
   // Ensure Argo CD CRDs are installed before creating Helm charts
-  const argoCdCrds = [
-    "application",
-    "applicationset",
-    "appproject"
-  ]
 
-  argoCdCrds.map(crd => {
-    new kubernetes.yaml.ConfigFile(`argo-cd-crd-${crd}`, {
-      file: `https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/crds/${crd}-crd.yaml`,
-    }, { 
-      provider: provider, 
-    });
-  });
+  // const argoNamespace = new kubernetes.core.v1.Namespace("argocd-namespace",
+  //   {
+  //     metadata: {
+  //       name: "argocd",
+  //       namespace: "argocd",
+  //     },
+  //   },
+  //   {
+  //     provider: provider,
+  //   },
+  // );
 
-  const argoNamespace = new kubernetes.core.v1.Namespace("argocd-namespace",
-    {
-      metadata: {
-        name: "argocd",
-        namespace: "argocd",
-      },
-    },
-    {
-      provider: provider,
-    },
-  );
-
-  new kubernetes.helm.v3.Release("argocd",
+  const argocd = new kubernetes.helm.v3.Release("argocd",
     {
       chart: "argo-cd",
       name: "argocd",
-      namespace: argoNamespace.metadata.name,
+      createNamespace: true,
+      namespace: "argocd",
       version: argoCdVersion,
   
       repositoryOpts: {
@@ -128,7 +116,6 @@ kubeProvider.apply(provider => {
     },
     {
       provider: provider,
-      dependsOn: [ argoNamespace ],
     },
   );
 
@@ -184,6 +171,7 @@ kubeProvider.apply(provider => {
       },
       {
         provider: provider,
+        dependsOn: [ argocd ],
       },
     );
   });

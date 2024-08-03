@@ -1,14 +1,15 @@
 import * as aws from "@pulumi/aws";
 
-import { vpc } from "./eks";
+import { eksVpc } from "./eks";
 import { awsProvider } from "./providers";
+
 import { dnsPrivateDomain, dnsPublicDomain, region, tags } from "./variables";
 
 // Create a private DNS zone 'int.brandon.com'
 const privateZone = new aws.route53.Zone("dns-int-hosted-zone", {
     name: dnsPrivateDomain,
     vpcs: [{
-        vpcId: vpc.vpcId,  
+        vpcId: eksVpc.vpcId,  
         vpcRegion: region,
     }],
 }, { provider: awsProvider });
@@ -17,7 +18,7 @@ const privateZone = new aws.route53.Zone("dns-int-hosted-zone", {
 const publicZone = new aws.route53.Zone("dns-public-hosted-zone", {
     name: dnsPublicDomain,
     vpcs: [{
-        vpcId: vpc.vpcId,  
+        vpcId: eksVpc.vpcId,  
         vpcRegion: region,
     }],
 }, { provider: awsProvider });
