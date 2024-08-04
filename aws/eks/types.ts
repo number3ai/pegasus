@@ -4,5 +4,5 @@ export interface EksAddon {
     configuration?: Map<string, any>;
     enableIRSA?: boolean;
     namespace?: string;
-}
+  }
   

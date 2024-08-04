@@ -44,7 +44,7 @@ export const eksAddons: EksAddon[] = [
   //   version: "v1.18.3-eksbuild.1",
   //   enableIRSA: true,
   // },
-]
+];
 
 // EKS Node Group Configuration
 export const minSize = 3;
@@ -62,7 +62,4 @@ export const githubOwner = "Cr0n1c";
 export const githubRepository = "testRepo";
 export const githubBootloaderPath = "charts/bootloader";
 
-export const githubBootloaders = [
-  "infrastructure",
-  "security",
-]
+export const githubBootloaders = ["infrastructure", "security"];

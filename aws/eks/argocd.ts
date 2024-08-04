@@ -4,8 +4,7 @@ import * as kubernetes from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import * as tls from "@pulumi/tls";
 
-import { kubeconfig } from "./eks";
-import { awsProvider, githubProvider } from "./providers";
+import { awsProvider, githubProvider, kubeProvider } from "./providers";
 import { argoCdAppsVersion, argoCdVersion } from "./variables";
 import { eksClusterName, environment, tags } from "./variables";
 import { githubOwner, githubBootloaderPath, githubBootloaders, githubRepository } from "./variables";
@@ -14,14 +13,16 @@ const githubRepositoryUrl = `git@github.com:${githubOwner}/${githubRepository}.g
 
 /* Setup GitHub Deployment Key */
 // Generate an ssh key for the deploy key
-const repositoryDeployKey = new tls.PrivateKey(`${eksClusterName}-eks-cluster-deploy-key`,
-  { 
-    algorithm: "ED25519" 
-  },
+const repositoryDeployKey = new tls.PrivateKey(
+  `${eksClusterName}-eks-cluster-deploy-key`,
+  {
+    algorithm: "ED25519",
+  }
 );
 
 // Add the ssh key as a deploy key
-new github.RepositoryDeployKey(`${eksClusterName}-eks-cluster-deploy-key`,
+new github.RepositoryDeployKey(
+  `${eksClusterName}-eks-cluster-deploy-key`,
   {
     key: repositoryDeployKey.publicKeyOpenssh,
     readOnly: true,
@@ -30,7 +31,7 @@ new github.RepositoryDeployKey(`${eksClusterName}-eks-cluster-deploy-key`,
   },
   {
     provider: githubProvider,
-  },
+  }
 );
 
 // Generate a random password for ArgoCD admin user.
@@ -43,7 +44,8 @@ const argoAdminPassword = new random.RandomPassword("argocd-admin-password", {
 });
 
 // Store the ArgoCD admin password in AWS Secrets Manager.
-const secret = new aws.secretsmanager.Secret("argocd-secret",
+const secret = new aws.secretsmanager.Secret(
+  "argocd-secret",
   {
     name: `${eksClusterName}/argocd/credentials`,
     description: "ArgoCD admin credentials",
@@ -52,38 +54,36 @@ const secret = new aws.secretsmanager.Secret("argocd-secret",
   },
   {
     provider: awsProvider,
-  },
+  }
 );
 
-new aws.secretsmanager.SecretVersion("argocd-secret-version",
+new aws.secretsmanager.SecretVersion(
+  "argocd-secret-version",
   {
     secretId: secret.id,
     secretString: argoAdminPassword.result.apply((password) =>
-      JSON.stringify({ password, username: "admin" }),
+      JSON.stringify({ password, username: "admin" })
     ),
   },
   {
     provider: awsProvider,
-  },
+  }
 );
 
-
 /* ArgoCD Setup */
-kubeconfig.apply(provider => {
-  // ArgoCD Installation
-  // Ensure Argo CD CRDs are installed before creating Helm charts
-  const argocd = new kubernetes.helm.v3.Release("argocd",
+// ArgoCD Installation
+kubeProvider.apply((provider) => {
+  const argocd = new kubernetes.helm.v3.Release(
+    "argocd",
     {
       chart: "argo-cd",
-      name: "argocd",
       createNamespace: true,
+      name: "argocd",
       namespace: "argocd",
       version: argoCdVersion,
-
       repositoryOpts: {
         repo: "https://argoproj.github.io/argo-helm",
       },
-
       values: {
         configs: {
           params: {
@@ -97,70 +97,72 @@ kubeconfig.apply(provider => {
             },
           },
           secret: {
-            argocdServerAdminPassword: argoAdminPassword.bcryptHash,
+            argocdServerAdminPassword: argoAdminPassword.result.apply(
+              (password) => password
+            ),
           },
         },
       },
     },
     {
       provider: provider,
-    },
+    }
   );
 
-  githubBootloaders.map(key => {
-    new kubernetes.helm.v4.Chart(`argocd-${key}-apps`,
-      {
-        chart: "argocd-apps",
-        name: `app-of-apps-${key}`,
-        namespace: "argocd",
-        version: argoCdAppsVersion,
-
-        repositoryOpts: {
-          repo: "https://argoproj.github.io/argo-helm",
-        },
-
-        values: {
-          applications: {
-            [`app-of-apps-${key}`]: {
-              namespace: "argocd",
-              additionalLabels: {
-                environment: environment
-              },
-              project: "default",
-              sources: [
-                {
-                  repoURL: githubRepositoryUrl,
-                  path: `${githubBootloaderPath}`,
-                  targetRevision: "HEAD",
-                  helm: {
-                    ignoreMissingValueFiles: true,
-                    valueFiles: [
-                      "values.yaml",
-                      `values-${environment}.yaml`,
-                      `values-${key}.yaml`,
-                      `values-${key}-${environment}.yaml`,
-                    ]
+  argocd.resourceNames.apply(() => {
+    githubBootloaders.map(
+      (key) =>
+        new kubernetes.helm.v4.Chart(
+          `argocd-${key}-apps`,
+          {
+            chart: "argocd-apps",
+            namespace: "argocd",
+            version: argoCdAppsVersion,
+            repositoryOpts: {
+              repo: "https://argoproj.github.io/argo-helm",
+            },
+            values: {
+              applications: {
+                [`app-of-apps-${key}`]: {
+                  namespace: "argocd",
+                  additionalLabels: {
+                    environment: environment,
                   },
-                },
-              ],
-              destination: {
-                server: "https://kubernetes.default.svc",
-                namespace: "argocd"
-              },
-              syncPolicy: {
-                automated: {
-                  prune: true,
-                  selfHeal: true,
+                  project: "default",
+                  sources: [
+                    {
+                      repoURL: githubRepositoryUrl,
+                      path: `${githubBootloaderPath}`,
+                      targetRevision: "HEAD",
+                      helm: {
+                        ignoreMissingValueFiles: true,
+                        valueFiles: [
+                          "values.yaml",
+                          `values-${environment}.yaml`,
+                          `values-${key}.yaml`,
+                          `values-${key}-${environment}.yaml`,
+                        ],
+                      },
+                    },
+                  ],
+                  destination: {
+                    server: "https://kubernetes.default.svc",
+                    namespace: "argocd",
+                  },
+                  syncPolicy: {
+                    automated: {
+                      prune: true,
+                      selfHeal: true,
+                    },
+                  },
                 },
               },
             },
           },
-        },
-      },
-      {
-        provider: provider,
-        dependsOn: [ argocd ],
-      },
+          {
+            provider: provider,
+          }
+        )
     );
   });
 });
