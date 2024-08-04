@@ -1,5 +1,3 @@
-import { EksAddon } from "./types";
-
 // DevOps General Configuration
 export const environment = "dev";
 
@@ -21,31 +19,6 @@ export const eksClusterName = "dev";
 export const eksNodeRootVolumeSize = 200;
 export const eksVPCCIDRBlock = "10.100.0.0/16";
 
-export const eksAddons: EksAddon[] = [
-  {
-    name: "aws-ebs-csi-driver",
-    version: "v1.32.0-eksbuild.1",
-    enableIRSA: true,
-  },
-  // {
-  //   name: "coredns",
-  //   version: "v1.11.1-eksbuild.9",
-  // },
-  // {
-  //   name: "eks-pod-identity-agent",
-  //   version: "v1.30.0-eksbuild.1",
-  // },
-  // {
-  //   name: "kube-proxy",
-  //   version: "v1.30.0-eksbuild.3",
-  // },
-  // {
-  //   name: "vpc-cni",
-  //   version: "v1.18.3-eksbuild.1",
-  //   enableIRSA: true,
-  // },
-];
-
 // EKS Node Group Configuration
 export const minSize = 3;
 export const maxSize = 5;
@@ -61,5 +34,4 @@ export const argoCdVersion = "7.3.9";
 export const githubOwner = "Cr0n1c";
 export const githubRepository = "testRepo";
 export const githubBootloaderPath = "charts/bootloader";
-
 export const githubBootloaders = ["infrastructure", "security"];
