@@ -7,7 +7,7 @@ import * as tls from "@pulumi/tls";
 import { awsProvider, githubProvider, kubeProvider } from "./providers";
 import { argoCdAppsVersion, argoCdVersion } from "./variables";
 import { eksClusterName, environment, tags } from "./variables";
-import { githubOwner, githubBootloaderPath, githubBootloaders, githubRepository } from "./variables";
+import { githubOwner, githubBootloaderPath, githubBootloaders, githubRepository} from "./variables";
 
 const githubRepositoryUrl = `git@github.com:${githubOwner}/${githubRepository}.git`;
 
@@ -97,8 +97,8 @@ kubeProvider.apply((provider) => {
             },
           },
           secret: {
-            argocdServerAdminPassword: argoAdminPassword.result.apply(
-              (password) => password
+            argocdServerAdminPassword: argoAdminPassword.bcryptHash.apply(
+              (bcryptHash) => bcryptHash
             ),
           },
         },
