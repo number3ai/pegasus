@@ -1,5 +1,12 @@
+/* EKS IAM
+    -------
+    This file contains the setup for the EKS IAM roles and policies. This should include
+    any IRSA roles, IAM policies, or other resources needed to support the EKS cluster.
+*/
+
 import * as aws from "@pulumi/aws";
 
+// List of managed IAM policies to attach to the EKS worker node role.
 const managedPolicyArns: string[] = [
   "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
   "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
@@ -9,23 +16,25 @@ const managedPolicyArns: string[] = [
 
 // Creates a role and attaches the EKS worker node IAM managed policies
 export function createRole(name: string): aws.iam.Role {
-  const role = new aws.iam.Role(name, {
-    assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
-      Service: "ec2.amazonaws.com",
-    }),
-  });
+const role = new aws.iam.Role(name, {
+  assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
+    Service: "ec2.amazonaws.com",
+  }),
+});
 
-  let counter = 0;
-  for (const policy of managedPolicyArns) {
-    // Create RolePolicyAttachment without returning it.
-    const rpa = new aws.iam.RolePolicyAttachment(
-      `${name}-policy-${counter++}`,
-      { policyArn: policy, role: role }
-    );
-  }
+let counter = 0;
+for (const policy of managedPolicyArns) {
+  // Create RolePolicyAttachment without returning it.
+  const rpa = new aws.iam.RolePolicyAttachment(
+    `${name}-policy-${counter++}`,
+    { 
+      policyArn: policy, 
+      role: role 
+    });
+  };
 
   return role;
-}
+};
 
 // Creates a collection of IAM roles.
 export function createRoles(name: string, quantity: number): aws.iam.Role[] {
@@ -36,7 +45,7 @@ export function createRoles(name: string, quantity: number): aws.iam.Role[] {
   }
 
   return roles;
-}
+};
 
 // Creates a collection of IAM instance profiles from the given roles.
 export function createInstanceProfiles(
@@ -52,7 +61,7 @@ export function createInstanceProfiles(
         role: role,
       })
     );
-  }
+  };
 
   return profiles;
 }

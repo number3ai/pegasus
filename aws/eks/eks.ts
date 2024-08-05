@@ -1,3 +1,9 @@
+/* EKS
+   ---
+   This file contains the setup for the EKS essentials such as the EKS cluster, node group, 
+   required networking, and any other resources needed to support the EKS cluster.
+*/
+
 import * as awsx from "@pulumi/awsx";
 import * as eks from "@pulumi/eks";
 

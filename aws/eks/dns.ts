@@ -1,3 +1,9 @@
+/* DNS
+   ----
+   This module creates a private and public Route 53 hosted zone, as well as any certificates
+   for any DNS Zone.
+*/
+
 import * as aws from "@pulumi/aws";
 
 import { eksVpc } from "./eks";

@@ -2,8 +2,8 @@
 export const environment = "dev";
 
 // AWS General Configuration
-export const region = "us-west-2"; // Set your desired AWS region here
-export const awsProfile = "default"; // Set your AWS profile name here
+export const region = "us-west-2"; 
+export const awsProfile = "default";
 export const tags = {
   Environment: environment,
   ManagedBy: "Pulumi",

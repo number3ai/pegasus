@@ -1,3 +1,10 @@
+/* ArgoCD 
+   -------
+   This file contains the initializers to get ArgoCD up and running in the cluster to include
+   the associated bootstrap applications. We try to limit any helm chart related functionality
+   to pulumi so keep that in mind when updating this. 
+*/
+
 import * as aws from "@pulumi/aws";
 import * as github from "@pulumi/github";
 import * as kubernetes from "@pulumi/kubernetes";

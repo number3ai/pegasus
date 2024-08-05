@@ -1,3 +1,7 @@
+/* Providers
+  This file sets up the providers that are used to interact with the applicable resources.
+*/
+
 import * as aws from "@pulumi/aws";
 import * as github from "@pulumi/github";
 import * as kubernetes from "@pulumi/kubernetes";
