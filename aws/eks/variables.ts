@@ -20,9 +20,9 @@ export const eksNodeRootVolumeSize = 200;
 export const eksVPCCIDRBlock = "10.100.0.0/16";
 
 // EKS Node Group Configuration
-export const minSize = 3;
-export const maxSize = 5;
-export const desiredSize = 3;
+export const minSize = 4;
+export const maxSize = 8;
+export const desiredSize = 4;
 export const instanceType = "t3.medium";
 export const eksNodesAMI = "ami-0aed8dba35aa48c75";
 

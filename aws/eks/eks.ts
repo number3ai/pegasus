@@ -26,24 +26,6 @@ export const instanceRoles = iam.createRoles(
   3
 );
 
-// Debug: Print the VPC configuration
-eksVpc.vpcId.apply((vpcId) => {
-  console.debug("----------[ VPC Configuration ]---------------");
-  console.debug("[+] VPC ID: ", vpcId);
-  console.debug("[+] Subnet IDs: ");
-  eksVpc.publicSubnetIds.apply((subnetIds) => {
-    subnetIds.forEach((subnet, index) => {
-      console.debug(`\t[*] Using Public Subnet ${index}: ${subnet}`);
-    });
-  });
-  eksVpc.privateSubnetIds.apply((subnetIds) => {
-    subnetIds.forEach((subnet, index) => {
-      console.debug(`\t[*] Using Private Subnet ${index}: ${subnet}`);
-    });
-  });
-  console.debug();
-});
-
 // Create an EKS cluster without node group configuration. We will add this later.
 export const cluster = new eks.Cluster(`${eksClusterName}-cluster`, {
   createOidcProvider: true,
@@ -95,23 +77,14 @@ eks.createManagedNodeGroup(`${eksClusterName}-node-group`, {
     minSize: minSize,
   },
   tags: tags,
+  taints: [
+    {
+      key: "node.cilium.io/agent-not-ready",
+      value: "true",
+      effect: "NO_EXECUTE",
+    },
+  ]
 });
 
 // Export the cluster's kubeconfig.
 export const kubeconfig = cluster.kubeconfig;
-
-// Debug: Print the EKS cluster configuration
-cluster.core.cluster.name.apply((eksClusterName) => {
-  console.debug("----------[ EKS Cluster Configuration ]---------------");
-  console.debug(`\t[+] Using Cluster Name: ${eksClusterName}`);
-  console.debug(`\t[+] Using EKS Version: ${eksVersion}\n`);
-
-  console.debug("----------[ EKS Node Group Configuration ]---------------");
-  console.debug("\t[+] Node Group Name: ", `${eksClusterName}-nodegroup`);
-  console.debug(`\t[+] Using Instance Type: ${instanceType}`);
-  console.debug(`\t[+] Using Root Volume Size: ${eksNodeRootVolumeSize}`);
-  console.debug("\t[+] Scaling Configuration");
-  console.debug(`\t\t[*] Using Desired Size: ${desiredSize}`);
-  console.debug(`\t\t[*] Using Min Size: ${minSize}`);
-  console.debug(`\t\t[*] Using Max Size: ${maxSize}\n`);
-});
