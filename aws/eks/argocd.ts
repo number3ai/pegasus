@@ -13,7 +13,7 @@ import * as tls from "@pulumi/tls";
 
 import { awsProvider, githubProvider, kubeProvider } from "./providers";
 import { argoCdAppsVersion, argoCdVersion } from "./variables";
-import { eksClusterName, environment, tags } from "./variables";
+import { dnsPublicDomain, eksClusterName, environment, tags } from "./variables";
 import { githubOwner, githubBootloaderPath, githubBootloaders, githubRepository} from "./variables";
 
 const githubRepositoryUrl = `git@github.com:${githubOwner}/${githubRepository}.git`;
@@ -107,6 +107,13 @@ export const argocd = kubeProvider.apply((provider) => {
             argocdServerAdminPassword: argoAdminPassword.bcryptHash.apply(
               (bcryptHash) => bcryptHash
             ),
+          },
+          ingress: {
+            enabled: true,
+            annotations: {
+              ["kubernetes.io/ingress.class"]: "nginx",
+            },
+            hostname: `argocd.${dnsPublicDomain}`
           },
         },
       },

@@ -10,8 +10,8 @@ export const tags = {
 };
 
 // DNS Configuration
-export const dnsPublicDomain = "int.domain.com";
-export const dnsPrivateDomain = "domain.com";
+export const dnsPublicDomain = "domain.com";
+export const dnsPrivateDomain = "int.domain.com";
 
 // EKS General Configuration
 export const eksVersion = "1.30";

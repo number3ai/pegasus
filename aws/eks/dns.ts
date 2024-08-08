@@ -23,7 +23,9 @@ const privateZone = new aws.route53.Zone(
       },
     ],
   },
-  { provider: awsProvider }
+  { 
+    provider: awsProvider 
+  }
 );
 
 // Create a public DNS zone 'brandon.com'
@@ -38,7 +40,9 @@ const publicZone = new aws.route53.Zone(
       },
     ],
   },
-  { provider: awsProvider }
+  { 
+    provider: awsProvider 
+  }
 );
 
 // Define a wildcard SSL/TLS certificate for int.brandon.com
@@ -50,7 +54,9 @@ const wildcardCertificate = new aws.acm.Certificate(
     subjectAlternativeNames: [dnsPrivateDomain], // Optionally include additional SANs if needed
     tags: tags,
   },
-  { provider: awsProvider }
+  { 
+    provider: awsProvider 
+  }
 );
 
 // Export the IDs of the created zones for reference
