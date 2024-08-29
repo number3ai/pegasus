@@ -5,21 +5,33 @@ jobs:
   preview:
     name: Preview
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.HELM_REPO_GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v3.5.0
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version-file: package.json
+          node-version-file: aws/eks/package.json
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-region: ${{ secrets.AWS_REGION }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      - run: npm install
-      - uses: pulumi/actions@v3
+      - name: Setup AWS Credentials
+        run: |
+          mkdir ~/.aws
+          echo "[default]" > ~/.aws/credentials
+          echo "aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
+          echo "aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
+      - name: Install Node Dependencies
+        run: |
+          cd ./aws/eks
+          npm install 
+      - uses: pulumi/actions@v5
         with:
           command: preview
           stack-name: dev
+          work-dir: aws/eks
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

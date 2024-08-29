@@ -22,6 +22,6 @@ export const githubProvider = new github.Provider("github", {
 });
 
 // Create the Kubernetes provider using the cluster's kubeconfig
-export const kubeProvider = cluster.kubeconfig.apply(
-  (kubeconfig) => new kubernetes.Provider("k8s", { kubeconfig })
-);
+export const kubeProvider = cluster.kubeconfig.apply(kubeconfig => {
+  return new kubernetes.Provider("k8s", { kubeconfig })
+});

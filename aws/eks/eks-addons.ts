@@ -4,6 +4,7 @@ import * as pulumi from "@pulumi/pulumi";
 
 import { argocd } from "./argocd";
 import { cluster } from "./eks";
+import { kubeProvider } from "./providers";
 import { eksClusterName, serviceMesh, tags } from "./variables";
 
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
@@ -79,30 +80,34 @@ if (serviceMesh === "cilium") {
   const namespace = "kube-system";
   const daemonsetName = "aws-node";
 
-  // Load the existing daemonset
-  const awsNodeDaemonSet = kubernetes.apps.v1.DaemonSet.get("aws-node", `${namespace}/${daemonsetName}`);
 
-  // Update the daemonset with the new nodeSelector
-  new kubernetes.apps.v1.DaemonSetPatch(daemonsetName, {
-    metadata: {
-      name: awsNodeDaemonSet.metadata.name,
-      namespace: awsNodeDaemonSet.metadata.namespace,
-    },
-    spec: {
-      template: {
-        spec: {
-          nodeSelector: {
-            "io.cilium/aws-node-enabled": "true"
+  kubeProvider.apply(kubeconfig => {
+    // Load the existing daemonset
+    const awsNodeDaemonSet = kubernetes.apps.v1.DaemonSet.get("aws-node", `${namespace}/${daemonsetName}`);
+
+    // Update the daemonset with the new nodeSelector
+    new kubernetes.apps.v1.DaemonSetPatch(daemonsetName, {
+      metadata: {
+        name: awsNodeDaemonSet.metadata.name,
+        namespace: awsNodeDaemonSet.metadata.namespace,
+      },
+      spec: {
+        template: {
+          spec: {
+            nodeSelector: {
+              "io.cilium/aws-node-enabled": "true"
+            }
           }
         }
       }
-    }
-  },
-  {
-    dependsOn: [
-      cluster,
-      argocd,
-    ]
+    },
+    {
+      dependsOn: [
+        cluster,
+        argocd,
+      ],
+      provider: kubeconfig,
+    });
   });
 
   // Create an IAM Policy for Cilium Operator
