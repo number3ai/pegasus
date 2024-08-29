@@ -4,7 +4,7 @@ import * as pulumi from "@pulumi/pulumi";
 
 import { argocd } from "./argocd";
 import { cluster } from "./eks";
-import { eksClusterName, tags } from "./variables";
+import { eksClusterName, serviceMesh, tags } from "./variables";
 
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
 const oidcProviderUrl = cluster.core.oidcProvider?.url || "";
@@ -75,105 +75,107 @@ new aws.iam.RolePolicy(
 
 /* Cilium */
 // Patching so we can setup cilium
-const namespace = "kube-system";
-const daemonsetName = "aws-node";
+if (serviceMesh === "cilium") {
+  const namespace = "kube-system";
+  const daemonsetName = "aws-node";
 
-// Load the existing daemonset
-const awsNodeDaemonSet = kubernetes.apps.v1.DaemonSet.get("aws-node", `${namespace}/${daemonsetName}`);
+  // Load the existing daemonset
+  const awsNodeDaemonSet = kubernetes.apps.v1.DaemonSet.get("aws-node", `${namespace}/${daemonsetName}`);
 
-// Update the daemonset with the new nodeSelector
-new kubernetes.apps.v1.DaemonSetPatch(daemonsetName, {
-  metadata: {
-    name: awsNodeDaemonSet.metadata.name,
-    namespace: awsNodeDaemonSet.metadata.namespace,
-  },
-  spec: {
-    template: {
-      spec: {
-        nodeSelector: {
-          "io.cilium/aws-node-enabled": "true"
+  // Update the daemonset with the new nodeSelector
+  new kubernetes.apps.v1.DaemonSetPatch(daemonsetName, {
+    metadata: {
+      name: awsNodeDaemonSet.metadata.name,
+      namespace: awsNodeDaemonSet.metadata.namespace,
+    },
+    spec: {
+      template: {
+        spec: {
+          nodeSelector: {
+            "io.cilium/aws-node-enabled": "true"
+          }
         }
       }
     }
-  }
-},
-{
-  dependsOn: [
-    cluster,
-    argocd,
-  ]
-});
-
-// Create an IAM Policy for Cilium Operator
-const ciliumPolicy = new aws.iam.Policy("ciliumPolicy", {
-  description: "Policy for Cilium Operator",
-  name: "CiliumOperatorPolicy",
-  policy: JSON.stringify({
-    Version: "2012-10-17",
-    Statement: [
-      {
-        Effect: "Allow",
-        Action: [
-          "ec2:AssignPrivateIpAddresses",
-          "ec2:AttachNetworkInterface",
-          "ec2:CreateNetworkInterface",
-          "ec2:CreateTags",
-          "ec2:DeleteNetworkInterface",
-          "ec2:DescribeInstances",
-          "ec2:DescribeInstanceTypes",
-          "ec2:DescribeNetworkInterfaces",
-          "ec2:DescribeSecurityGroups",
-          "ec2:DescribeSubnets",
-          "ec2:DescribeTags",
-          "ec2:DescribeVpcs",
-          "ec2:DetachNetworkInterface",
-          "ec2:ModifyNetworkInterfaceAttribute",
-          "ec2:UnassignPrivateIpAddresses",
-        ],
-        Resource: "*",
-      },
-    ],
-  }),
-});
-
-const ciliumRole = new aws.iam.Role(
-  `ciliumRole`,
-  {
-    name: "CiliumOperatorRole",
-    assumeRolePolicy: pulumi
-      .all([oidcProviderArn, oidcProviderUrl])
-      .apply(([arn, url]) =>
-        JSON.stringify({
-          Version: "2012-10-17",
-          Statement: [
-            {
-              Action: "sts:AssumeRoleWithWebIdentity",
-              Effect: "Allow",
-              Principal: {
-                Federated: arn,
-              },
-              Condition: {
-                StringEquals: {
-                  [`${url}:aud`]: "sts.amazonaws.com",
-                  [`${url}:sub`]: "system:serviceaccount:kube-system:cilium-operator",
-                },
-              },
-            },
-          ],
-        })
-      ),
-    tags: tags,
   },
   {
-    dependsOn: [cluster],
-  }
-);
+    dependsOn: [
+      cluster,
+      argocd,
+    ]
+  });
 
-// Attach the IAM Policy to the IAM Role
-new aws.iam.RolePolicyAttachment("ciliumPolicyAttachment", {
-  policyArn: ciliumPolicy.arn,
-  role: ciliumRole.name,
-});
+  // Create an IAM Policy for Cilium Operator
+  const ciliumPolicy = new aws.iam.Policy("ciliumPolicy", {
+    description: "Policy for Cilium Operator",
+    name: "CiliumOperatorPolicy",
+    policy: JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Effect: "Allow",
+          Action: [
+            "ec2:AssignPrivateIpAddresses",
+            "ec2:AttachNetworkInterface",
+            "ec2:CreateNetworkInterface",
+            "ec2:CreateTags",
+            "ec2:DeleteNetworkInterface",
+            "ec2:DescribeInstances",
+            "ec2:DescribeInstanceTypes",
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:DescribeSecurityGroups",
+            "ec2:DescribeSubnets",
+            "ec2:DescribeTags",
+            "ec2:DescribeVpcs",
+            "ec2:DetachNetworkInterface",
+            "ec2:ModifyNetworkInterfaceAttribute",
+            "ec2:UnassignPrivateIpAddresses",
+          ],
+          Resource: "*",
+        },
+      ],
+    }),
+  });
+
+  const ciliumRole = new aws.iam.Role(
+    `ciliumRole`,
+    {
+      name: "CiliumOperatorRole",
+      assumeRolePolicy: pulumi
+        .all([oidcProviderArn, oidcProviderUrl])
+        .apply(([arn, url]) =>
+          JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Action: "sts:AssumeRoleWithWebIdentity",
+                Effect: "Allow",
+                Principal: {
+                  Federated: arn,
+                },
+                Condition: {
+                  StringEquals: {
+                    [`${url}:aud`]: "sts.amazonaws.com",
+                    [`${url}:sub`]: "system:serviceaccount:kube-system:cilium-operator",
+                  },
+                },
+              },
+            ],
+          })
+        ),
+      tags: tags,
+    },
+    {
+      dependsOn: [cluster],
+    }
+  );
+
+  // Attach the IAM Policy to the IAM Role
+  new aws.iam.RolePolicyAttachment("ciliumPolicyAttachment", {
+    policyArn: ciliumPolicy.arn,
+    role: ciliumRole.name,
+  });
+};
 
 /* AWS Load Balancer Controller */
 const awsLoadBalancerControllerRole = new aws.iam.Role(

@@ -10,7 +10,7 @@ import * as eks from "@pulumi/eks";
 import * as iam from "./eks-iam";
 
 import { desiredSize, eksClusterName, eksNodeRootVolumeSize, eksVersion } from "./variables";
-import { eksVPCCIDRBlock, instanceType, minSize, maxSize, tags } from "./variables";
+import { eksVPCCIDRBlock, instanceType, minSize, maxSize, serviceMesh, tags } from "./variables";
 
 // Create a VPC for our cluster.
 export const eksVpc = new awsx.ec2.Vpc(`${eksClusterName}-vpc`, {
@@ -83,13 +83,13 @@ eks.createManagedNodeGroup(`${eksClusterName}-node-group`, {
     minSize: minSize,
   },
   tags: tags,
-  taints: [
+  taints: serviceMesh == "cilium" ? [
     {
       key: "node.cilium.io/agent-not-ready",
       value: "true",
       effect: "NO_EXECUTE",
     },
-  ]
+  ] : []
 });
 
 // Export the cluster's kubeconfig.

@@ -45,7 +45,7 @@ const publicZone = new aws.route53.Zone(
   }
 );
 
-// Define a wildcard SSL/TLS certificate for int.brandon.com
+// Define a wildcard SSL/TLS certificate for int. domain
 const wildcardCertificate = new aws.acm.Certificate(
   "dns-int-wildcard-cert",
   {

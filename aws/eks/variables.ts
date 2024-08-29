@@ -23,8 +23,7 @@ export const eksVPCCIDRBlock = "10.100.0.0/16";
 export const minSize = 4;
 export const maxSize = 8;
 export const desiredSize = 4;
-export const instanceType = "t3.medium";
-export const eksNodesAMI = "ami-0aed8dba35aa48c75";
+export const instanceType = "t3.large";
 
 // ArgoCD Configuration
 export const argoCdAppsVersion = "2.0.0";
@@ -35,3 +34,6 @@ export const githubOwner = "Cr0n1c";
 export const githubRepository = "testRepo";
 export const githubBootloaderPath = "charts/bootloader";
 export const githubBootloaders = ["infrastructure", "security"];
+
+// Kubernetes Configuration
+export const serviceMesh = "cilium";
