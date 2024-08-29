@@ -79,7 +79,7 @@ new aws.secretsmanager.SecretVersion(
 
 /* ArgoCD Setup */
 // ArgoCD Installation
-export const argocd = kubeProvider.apply((provider) => {
+export const argocd = kubeProvider.apply(provider => {
   const argocd = new kubernetes.helm.v3.Release(
     "argocd",
     {
