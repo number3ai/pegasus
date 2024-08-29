@@ -17,7 +17,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - run: |
-          cd ../aws/eks
+          cd ./aws/eks
           npm install 
       - uses: pulumi/actions@v5
         with:
