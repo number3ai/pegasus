@@ -7,6 +7,8 @@ jobs:
   update:
     name: Update
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.HELM_REPO_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
