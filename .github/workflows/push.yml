@@ -28,14 +28,12 @@ jobs:
           echo "[default]" > ~/.aws/credentials
           echo "aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
           echo "aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
-      - name: Install Node Dependencies
+      - name: Install Dependencies
         run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
           cd ./aws/eks
           npm install 
-      - uses: azure/setup-kubectl@v4
-        id: install
-        with:
-          version: "v0.16.1"
       - uses: actions/cache@v2
         with:
           path: |
