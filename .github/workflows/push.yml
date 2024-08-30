@@ -33,8 +33,6 @@ jobs:
           cd ./aws/eks
           npm install 
       - uses: azure/setup-kubectl@v4
-        with:
-          version: default
         id: install
       - uses: actions/cache@v2
         with:
