@@ -32,6 +32,11 @@ jobs:
         run: |
           cd ./aws/eks
           npm install 
+      - uses: actions/cache@v2
+        with:
+          path: |
+            '**/node_modules'
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
       - uses: pulumi/actions@v5
         with:
           command: up
