@@ -91,6 +91,3 @@ eks.createManagedNodeGroup(`${eksClusterName}-node-group`, {
     },
   ] : []
 });
-
-// Export the cluster's kubeconfig.
-export const kubeconfig = cluster.kubeconfig;

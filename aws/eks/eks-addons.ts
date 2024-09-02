@@ -4,7 +4,6 @@ import * as pulumi from "@pulumi/pulumi";
 
 import { argocd } from "./argocd";
 import { cluster } from "./eks";
-import { kubeProvider } from "./providers";
 import { eksClusterName, serviceMesh, tags } from "./variables";
 
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
@@ -81,7 +80,7 @@ if (serviceMesh === "cilium") {
   const daemonsetName = "aws-node";
 
 
-  kubeProvider.apply(kubeconfig => {
+  cluster.kubeconfig.apply(kubeconfig => {
     // Load the existing daemonset
     const awsNodeDaemonSet = kubernetes.apps.v1.DaemonSet.get("aws-node", `${namespace}/${daemonsetName}`);
 

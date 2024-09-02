@@ -11,7 +11,8 @@ import * as kubernetes from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import * as tls from "@pulumi/tls";
 
-import { awsProvider, githubProvider, kubeProvider } from "./providers";
+import { cluster } from "./eks";
+import { awsProvider, githubProvider } from "./providers";
 import { argoCdAppsVersion, argoCdVersion } from "./variables";
 import { dnsPublicDomain, eksClusterName, environment, tags } from "./variables";
 import { githubOwner, githubBootloaderPath, githubBootloaders, githubRepository} from "./variables";
@@ -79,7 +80,7 @@ new aws.secretsmanager.SecretVersion(
 
 /* ArgoCD Setup */
 // ArgoCD Installation
-export const argocd = kubeProvider.apply(provider => {
+export const argocd = cluster.kubeconfig.apply(provider => {
   const argocd = new kubernetes.helm.v3.Release(
     "argocd",
     {
