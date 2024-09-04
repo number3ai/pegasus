@@ -42,7 +42,7 @@ jobs:
       - uses: pulumi/actions@v5
         name: Pulumi Down
         with:
-          command: down
+          command: destroy
           stack-name: dev
           work-dir: aws/eks
           comment-on-pr: true

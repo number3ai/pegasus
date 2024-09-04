@@ -110,7 +110,6 @@ new aws.iam.RolePolicy(
   }
 );
 
-
 /* AWS Load Balancer Controller */
 const awsLoadBalancerControllerRole = new aws.iam.Role(
   `${eksClusterName}-role-aws-load-balancer-controller`,
