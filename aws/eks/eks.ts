@@ -144,11 +144,6 @@ eks.createManagedNodeGroup(`${eksClusterName}-node-group`, {
             value: "true",
             effect: "NO_EXECUTE",
           },
-          {
-            key: "argocd.io/schedulable", // Taint to allow ArgoCD scheduling
-            value: "true",
-            effect: "NO_SCHEDULE",
-          },
         ]
       : [],
 });
