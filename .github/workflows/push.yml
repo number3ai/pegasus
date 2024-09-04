@@ -43,6 +43,7 @@ jobs:
           cd ./aws/eks
           npm install 
       - uses: pulumi/actions@v5
+        name: Pulumi Up
         with:
           command: up
           stack-name: dev
