@@ -1,9 +1,49 @@
+/**
+ * This Pulumi code sets up IAM roles, policies, and patches for Kubernetes services such as 
+ * AWS EBS CSI Driver, Cilium, and AWS Load Balancer Controller in an EKS cluster.
+ * 
+ * Breakdown:
+ * 
+ * 1. OIDC Provider:
+ *    - Extracts the OIDC provider's ARN and URL from the EKS cluster to facilitate the creation of 
+ *      IAM roles for service accounts.
+ * 
+ * 2. AWS EBS CSI Driver:
+ *    - Creates an IAM role (`irsaRole`) for the AWS EBS CSI Driver, allowing the service account 
+ *      `aws-ebs-csi-driver-sa` to assume the role using web identity tokens.
+ *    - Attaches the `AmazonEBSCSIDriverPolicy` to this role and adds a custom IAM policy for KMS 
+ *      decryption permissions.
+ * 
+ * 3. Cilium Service Mesh:
+ *    - If `serviceMesh` is set to `cilium`, the existing `aws-node` DaemonSet in the `kube-system` 
+ *      namespace is patched to add a `nodeSelector`.
+ *    - Creates an IAM policy (`ciliumPolicy`) for the Cilium operator to manage EC2 network 
+ *      interfaces and assigns it to a new IAM role (`ciliumRole`).
+ * 
+ * 4. AWS Load Balancer Controller:
+ *    - Creates an IAM role (`awsLoadBalancerControllerRole`) for the AWS Load Balancer Controller, 
+ *      allowing the `aws-load-balancer-controller-sa` service account to assume the role.
+ *    - Attaches a detailed IAM policy for the role to manage Elastic Load Balancers (ELB), security 
+ *      groups, and related AWS resources, with additional conditions for tagging resources.
+ * 
+ * 5. IAM Policy Attachments:
+ *    - Multiple IAM policies are attached to the roles created for the various Kubernetes components 
+ *      to ensure they have the correct permissions for interacting with AWS resources like EC2, ELB, 
+ *      and KMS.
+ * 
+ * Summary:
+ * This code sets up the necessary IAM roles and policies for managing AWS resources through 
+ * Kubernetes services such as AWS EBS CSI Driver, Cilium, and AWS Load Balancer Controller in an 
+ * EKS environment.
+ */
+
 import * as aws from "@pulumi/aws";
 import * as kubernetes from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 
 import { argocd } from "./argocd";
 import { cluster } from "./eks";
+import { k8sProvider } from "./providers";
 import { eksClusterName, serviceMesh, tags } from "./variables";
 
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
@@ -29,7 +69,8 @@ const irsaRole = new aws.iam.Role(
               Condition: {
                 StringEquals: {
                   [`${url}:aud`]: "sts.amazonaws.com",
-                  [`${url}:sub`]: "system:serviceaccount:kube-system:aws-ebs-csi-driver-sa",
+                  [`${url}:sub`]:
+                    "system:serviceaccount:kube-system:aws-ebs-csi-driver-sa",
                 },
               },
             },
@@ -47,8 +88,7 @@ new aws.iam.RolePolicyAttachment(
   `${eksClusterName}-policy-attachment-aws-ebs-csi-driver`,
   {
     role: irsaRole.name,
-    policyArn:
-      "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy",
+    policyArn: "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy",
   }
 );
 
@@ -79,13 +119,16 @@ if (serviceMesh === "cilium") {
   const namespace = "kube-system";
   const daemonsetName = "aws-node";
 
+  // Load the existing daemonset
+  const awsNodeDaemonSet = kubernetes.apps.v1.DaemonSet.get(
+    "aws-node",
+    `${namespace}/${daemonsetName}`
+  );
 
-  cluster.kubeconfig.apply(kubeconfig => {
-    // Load the existing daemonset
-    const awsNodeDaemonSet = kubernetes.apps.v1.DaemonSet.get("aws-node", `${namespace}/${daemonsetName}`);
-
-    // Update the daemonset with the new nodeSelector
-    new kubernetes.apps.v1.DaemonSetPatch(daemonsetName, {
+  // Update the daemonset with the new nodeSelector
+  new kubernetes.apps.v1.DaemonSetPatch(
+    daemonsetName,
+    {
       metadata: {
         name: awsNodeDaemonSet.metadata.name,
         namespace: awsNodeDaemonSet.metadata.namespace,
@@ -94,20 +137,17 @@ if (serviceMesh === "cilium") {
         template: {
           spec: {
             nodeSelector: {
-              "io.cilium/aws-node-enabled": "true"
-            }
-          }
-        }
-      }
+              "io.cilium/aws-node-enabled": "true",
+            },
+          },
+        },
+      },
     },
     {
-      dependsOn: [
-        cluster,
-        argocd,
-      ],
-      provider: kubeconfig,
-    });
-  });
+      dependsOn: [cluster, argocd],
+      provider: k8sProvider,
+    }
+  );
 
   // Create an IAM Policy for Cilium Operator
   const ciliumPolicy = new aws.iam.Policy("ciliumPolicy", {
@@ -160,7 +200,8 @@ if (serviceMesh === "cilium") {
                 Condition: {
                   StringEquals: {
                     [`${url}:aud`]: "sts.amazonaws.com",
-                    [`${url}:sub`]: "system:serviceaccount:kube-system:cilium-operator",
+                    [`${url}:sub`]:
+                      "system:serviceaccount:kube-system:cilium-operator",
                   },
                 },
               },
@@ -179,7 +220,7 @@ if (serviceMesh === "cilium") {
     policyArn: ciliumPolicy.arn,
     role: ciliumRole.name,
   });
-};
+}
 
 /* AWS Load Balancer Controller */
 const awsLoadBalancerControllerRole = new aws.iam.Role(
@@ -201,7 +242,8 @@ const awsLoadBalancerControllerRole = new aws.iam.Role(
               Condition: {
                 StringEquals: {
                   [`${url}:aud`]: "sts.amazonaws.com",
-                  [`${url}:sub`]: "system:serviceaccount:kube-system:aws-load-balancer-controller-sa",
+                  [`${url}:sub`]:
+                    "system:serviceaccount:kube-system:aws-load-balancer-controller-sa",
                 },
               },
             },
@@ -285,90 +327,85 @@ const awsLoadBalancerControllerPolicy = new aws.iam.RolePolicy(
         },
         {
           Effect: "Allow",
-          Action: [
-            "ec2:CreateTags"
-          ],
+          Action: ["ec2:CreateTags"],
           Condition: {
             StringEquals: {
-                "ec2:CreateAction": "CreateSecurityGroup"
+              "ec2:CreateAction": "CreateSecurityGroup",
             },
             Null: {
-                "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
-            }
+              "aws:RequestTag/elbv2.k8s.aws/cluster": "false",
+            },
           },
           Resource: "arn:aws:ec2:*:*:security-group/*",
         },
         {
           Effect: "Allow",
-          Action: [
-            "ec2:CreateTags",
-            "ec2:DeleteTags"
-          ],
+          Action: ["ec2:CreateTags", "ec2:DeleteTags"],
           Resource: "arn:aws:ec2:*:*:security-group/*",
           Condition: {
             Null: {
               "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
-              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
-            }
-          }
+              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false",
+            },
+          },
         },
         {
           Effect: "Allow",
           Action: [
             "ec2:AuthorizeSecurityGroupIngress",
             "ec2:RevokeSecurityGroupIngress",
-            "ec2:DeleteSecurityGroup"
+            "ec2:DeleteSecurityGroup",
           ],
           Resource: "*",
           Condition: {
             Null: {
-              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
-            }
+              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false",
+            },
           },
         },
         {
           Effect: "Allow",
           Action: [
             "elasticloadbalancing:CreateLoadBalancer",
-            "elasticloadbalancing:CreateTargetGroup"
+            "elasticloadbalancing:CreateTargetGroup",
           ],
           Resource: "*",
           Condition: {
             Null: {
-              "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
-            }
-          }
+              "aws:RequestTag/elbv2.k8s.aws/cluster": "false",
+            },
+          },
         },
         {
           Effect: "Allow",
           Action: [
             "elasticloadbalancing:AddTags",
-            "elasticloadbalancing:RemoveTags"
+            "elasticloadbalancing:RemoveTags",
           ],
           Resource: [
             "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
             "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-            "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+            "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*",
           ],
           Condition: {
             Null: {
               "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
-              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
-            }
-          }
+              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false",
+            },
+          },
         },
         {
           Effect: "Allow",
           Action: [
             "elasticloadbalancing:AddTags",
-            "elasticloadbalancing:RemoveTags"
+            "elasticloadbalancing:RemoveTags",
           ],
           Resource: [
             "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
             "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
             "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
-            "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
-          ]
+            "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*",
+          ],
         },
         {
           Effect: "Allow",
@@ -380,44 +417,42 @@ const awsLoadBalancerControllerPolicy = new aws.iam.RolePolicy(
             "elasticloadbalancing:DeleteLoadBalancer",
             "elasticloadbalancing:ModifyTargetGroup",
             "elasticloadbalancing:ModifyTargetGroupAttributes",
-            "elasticloadbalancing:DeleteTargetGroup"
+            "elasticloadbalancing:DeleteTargetGroup",
           ],
           Resource: "*",
           Condition: {
             Null: {
-              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
-            }
-          }
+              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false",
+            },
+          },
         },
         {
           Effect: "Allow",
-          Action: [
-            "elasticloadbalancing:AddTags"
-          ],
+          Action: ["elasticloadbalancing:AddTags"],
           Resource: [
             "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
             "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-            "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+            "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*",
           ],
           Condition: {
             StringEquals: {
               "elasticloadbalancing:CreateAction": [
                 "CreateTargetGroup",
-                "CreateLoadBalancer"
-              ]
+                "CreateLoadBalancer",
+              ],
             },
             Null: {
-              "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
-            }
-          }
+              "aws:RequestTag/elbv2.k8s.aws/cluster": "false",
+            },
+          },
         },
         {
           Effect: "Allow",
           Action: [
             "elasticloadbalancing:RegisterTargets",
-            "elasticloadbalancing:DeregisterTargets"
+            "elasticloadbalancing:DeregisterTargets",
           ],
-          Resource: "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
+          Resource: "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
         },
       ],
     }),
