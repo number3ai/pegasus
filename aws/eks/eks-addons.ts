@@ -182,7 +182,7 @@ if (serviceMesh === "cilium") {
   });
 
   const ciliumRole = new aws.iam.Role(
-    `ciliumRole`,
+    "ciliumRole",
     {
       name: "CiliumOperatorRole",
       assumeRolePolicy: pulumi
@@ -257,7 +257,7 @@ const awsLoadBalancerControllerRole = new aws.iam.Role(
   }
 );
 
-const awsLoadBalancerControllerPolicy = new aws.iam.RolePolicy(
+new aws.iam.RolePolicy(
   `${eksClusterName}-policy-attachment-aws-load-balancer-controller`,
   {
     name: "AWSLoadBalancerControllerPolicy",
