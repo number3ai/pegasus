@@ -119,28 +119,6 @@ new aws.secretsmanager.SecretVersion(
   }
 );
 
-// Create a namespace for ArgoCD
-const argocdNamespace = new kubernetes.core.v1.Namespace(
-  "argocd", 
-  {
-    metadata: {
-        name: "argocd",
-        annotations: {
-            "argocd.io/tolerations": JSON.stringify([
-                {
-                    key: "node.cilium.io/agent-not-ready",
-                    operator: "Exists",
-                    effect: "NoExecute",
-                },
-            ]),
-        },
-    },
-  }, 
-  {
-    provider: k8sProvider,
-  }
-);
-
 /* ArgoCD Setup */
 // ArgoCD Installation
 export const argocd = new kubernetes.helm.v3.Release(
@@ -182,7 +160,6 @@ export const argocd = new kubernetes.helm.v3.Release(
     },
   },
   {
-    dependsOn: [argocdNamespace],
     provider: k8sProvider,
   }
 );
