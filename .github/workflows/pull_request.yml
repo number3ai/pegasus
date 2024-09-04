@@ -26,10 +26,20 @@ jobs:
           echo "[default]" > ~/.aws/credentials
           echo "aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
           echo "aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
-      - name: Install Node Dependencies
+      - uses: actions/cache@v2
+        id: cache-node-modules
+        with:
+          path: |
+            /usr/local/bin/kubectl
+            '**/node_modules'
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Install Dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          cp kubectl /usr/local/bin/kubectl
           cd ./aws/eks
-          npm install 
+          npm install
       - uses: pulumi/actions@v5
         with:
           command: preview
