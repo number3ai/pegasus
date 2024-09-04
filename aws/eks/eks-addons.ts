@@ -122,7 +122,11 @@ if (serviceMesh === "cilium") {
   // Load the existing daemonset
   const awsNodeDaemonSet = kubernetes.apps.v1.DaemonSet.get(
     "aws-node",
-    `${namespace}/${daemonsetName}`
+    `${namespace}/${daemonsetName}`,
+    { 
+      dependsOn: [cluster, argocd],
+      provider: k8sProvider 
+    }
   );
 
   // Update the daemonset with the new nodeSelector
