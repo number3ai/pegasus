@@ -136,13 +136,18 @@ eks.createManagedNodeGroup(`${eksClusterName}-node-group`, {
     minSize: minSize,
   },
   tags: tags,
-  taints:
-    serviceMesh == "cilium"
+  taints: 
+    serviceMesh == "cilium" 
       ? [
           {
             key: "node.cilium.io/agent-not-ready",
             value: "true",
             effect: "NO_EXECUTE",
+          },
+          {
+            key: "argocd.io/schedulable", // Taint to allow ArgoCD scheduling
+            value: "true",
+            effect: "NO_SCHEDULE",
           },
         ]
       : [],

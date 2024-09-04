@@ -41,6 +41,7 @@ import * as aws from "@pulumi/aws";
 import * as kubernetes from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 
+import { argocd } from "./argocd";
 import { cluster } from "./eks";
 import { k8sProvider } from "./providers";
 import { eksClusterName, serviceMesh, tags } from "./variables";
@@ -123,7 +124,7 @@ if (serviceMesh === "cilium") {
     "aws-node",
     `${namespace}/${daemonsetName}`,
     { 
-      dependsOn: [cluster],
+      dependsOn: [cluster, argocd],
       provider: k8sProvider 
     }
   );
@@ -147,7 +148,7 @@ if (serviceMesh === "cilium") {
       },
     },
     {
-      dependsOn: [cluster],
+      dependsOn: [cluster, argocd],
       provider: k8sProvider,
     }
   );
