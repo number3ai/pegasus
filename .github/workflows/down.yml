@@ -1,10 +1,10 @@
-name: Pulumi
+name: Pulumi Down
 on:
   workflow_dispatch:
 
 jobs:
   update:
-    name: Update
+    name: Delete
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.HELM_REPO_GITHUB_TOKEN }}
