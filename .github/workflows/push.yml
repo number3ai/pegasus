@@ -35,13 +35,15 @@ jobs:
             /usr/local/bin/kubectl
             '**/node_modules'
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      - name: Install Dependencies
+      - name: Install K8s Dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           cp kubectl /usr/local/bin/kubectl
+      - name: Setting up Pulumi
+        run: |
           cd ./aws/eks
-          npm install 
+          npm install
       - uses: pulumi/actions@v5
         name: Pulumi Up
         with:
