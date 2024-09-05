@@ -33,65 +33,75 @@
  * of the Kubernetes cluster on AWS.
  */
 
-import * as aws from "@pulumi/aws";
+import * as aws from "@pulumi/aws"; // Import AWS resources from Pulumi
 
 // List of managed IAM policies to attach to the EKS worker node role.
+// These policies grant necessary permissions for the EKS worker nodes to interact with AWS services.
 const managedPolicyArns: string[] = [
-  "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-  "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-  "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-  "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+  "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy", // Allows worker nodes to communicate with the EKS cluster
+  "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy", // Provides permissions to manage Elastic Network Interfaces (ENIs)
+  "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly", // Grants read-only access to ECR (Elastic Container Registry) for pulling container images
+  "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy", // Allows nodes to push metrics and logs to CloudWatch
 ];
 
 // Creates a role and attaches the EKS worker node IAM managed policies
+// This function creates an IAM role for EKS worker nodes and attaches the required managed policies.
 export function createRole(name: string): aws.iam.Role {
+  // Define the IAM Role with the 'ec2.amazonaws.com' service principal
   const role = new aws.iam.Role(name, {
     assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
-      Service: "ec2.amazonaws.com",
+      Service: "ec2.amazonaws.com", // Allows EC2 instances (EKS nodes) to assume this role
     }),
   });
 
   let counter = 0;
+  // Loop through each managed policy ARN and attach it to the role
   for (const policy of managedPolicyArns) {
-    // Create RolePolicyAttachment without returning it.
-    const rpa = new aws.iam.RolePolicyAttachment(
-      `${name}-policy-${counter++}`,
+    // Create RolePolicyAttachment to attach each policy to the role
+    new aws.iam.RolePolicyAttachment(
+      `${name}-policy-${counter++}`, // Name of the policy attachment
       {
-        policyArn: policy,
-        role: role,
+        policyArn: policy, // Attach the managed policy
+        role: role, // The IAM role to which the policy is attached
       }
     );
   }
 
-  return role;
+  return role; // Return the created IAM role
 }
 
-// Creates a collection of IAM roles.
+// Creates a collection of IAM roles based on the specified quantity
+// This function allows creating multiple IAM roles, which can be useful for different node groups in the EKS cluster.
 export function createRoles(name: string, quantity: number): aws.iam.Role[] {
   const roles: aws.iam.Role[] = [];
 
+  // Loop to create the specified number of roles
   for (let i = 0; i < quantity; i++) {
+    // Each role is named sequentially (e.g., name-role-0, name-role-1, etc.)
     roles.push(createRole(`${name}-role-${i}`));
   }
 
-  return roles;
+  return roles; // Return the array of created roles
 }
 
-// Creates a collection of IAM instance profiles from the given roles.
+// Creates a collection of IAM instance profiles from the given roles
+// An instance profile is required to assign an IAM role to an EC2 instance.
 export function createInstanceProfiles(
   name: string,
   roles: aws.iam.Role[]
 ): aws.iam.InstanceProfile[] {
   const profiles: aws.iam.InstanceProfile[] = [];
 
+  // Loop through each IAM role and create an associated instance profile
   for (let i = 0; i < roles.length; i++) {
     const role = roles[i];
+    // Create an instance profile for the role
     profiles.push(
       new aws.iam.InstanceProfile(`${name}-instanceProfile-${i}`, {
-        role: role,
+        role: role, // Associate the role with the instance profile
       })
     );
   }
 
-  return profiles;
+  return profiles; // Return the array of created instance profiles
 }

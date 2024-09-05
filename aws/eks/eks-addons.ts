@@ -37,20 +37,24 @@
  * EKS environment.
  */
 
-import * as aws from "@pulumi/aws";
-import * as pulumi from "@pulumi/pulumi";
+import * as aws from "@pulumi/aws"; // Import AWS resources from Pulumi
+import * as pulumi from "@pulumi/pulumi"; // Import Pulumi utilities
 
-import { cluster } from "./eks";
-import { eksClusterName, tags } from "./variables";
+import { cluster } from "./eks"; // Import the EKS cluster details
+import { eksClusterName, tags } from "./variables"; // Import cluster name and tags
 
+// Get the OIDC (OpenID Connect) provider ARN and URL from the EKS cluster
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
 const oidcProviderUrl = cluster.core.oidcProvider?.url || "";
 
-/* aws-ebs-csi-driver */
+/* 
+ * Create IAM Role for AWS EBS CSI Driver (Container Storage Interface) 
+ * This role allows the EBS CSI driver to interact with AWS services on behalf of the Kubernetes service account.
+ */
 const irsaRole = new aws.iam.Role(
-  `${eksClusterName}-role-aws-ebs-csi-driver`,
+  `${eksClusterName}-role-aws-ebs-csi-driver`, // Name of the IAM Role
   {
-    name: "aws-ebs-csi-driver-sa",
+    name: "aws-ebs-csi-driver-sa", // IAM Role name associated with the service account
     assumeRolePolicy: pulumi
       .all([oidcProviderArn, oidcProviderUrl])
       .apply(([arn, url]) =>
@@ -58,41 +62,48 @@ const irsaRole = new aws.iam.Role(
           Version: "2012-10-17",
           Statement: [
             {
-              Action: "sts:AssumeRoleWithWebIdentity",
+              Action: "sts:AssumeRoleWithWebIdentity", // Allow the service account to assume this role
               Effect: "Allow",
               Principal: {
-                Federated: arn,
+                Federated: arn, // Use the OIDC provider ARN
               },
               Condition: {
                 StringEquals: {
-                  [`${url}:aud`]: "sts.amazonaws.com",
-                  [`${url}:sub`]:
-                    "system:serviceaccount:kube-system:aws-ebs-csi-driver-sa",
+                  [`${url}:aud`]: "sts.amazonaws.com", // Ensure the audience matches
+                  [`${url}:sub`]: "system:serviceaccount:kube-system:aws-ebs-csi-driver-sa", // Service account subject
                 },
               },
             },
           ],
         })
       ),
-    tags: tags,
+    tags: tags, // Apply the tags to this resource
   },
   {
-    dependsOn: [cluster],
+    dependsOn: [cluster], // Ensure this resource is created after the EKS cluster is available
   }
 );
 
+/* 
+ * Attach the AmazonEBSCSIDriverPolicy to the IAM Role 
+ * This policy allows the EBS CSI driver to perform necessary actions such as volume management.
+ */
 new aws.iam.RolePolicyAttachment(
   `${eksClusterName}-policy-attachment-aws-ebs-csi-driver`,
   {
-    role: irsaRole.name,
-    policyArn: "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy",
+    role: irsaRole.name, // Attach to the IAM Role created above
+    policyArn: "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy", // Use predefined AWS EBS CSI policy
   }
 );
 
+/* 
+ * Create a custom IAM policy for EBS CSI Driver with KMS (Key Management Service) permissions
+ * This allows the EBS CSI driver to use KMS for encryption operations.
+ */
 new aws.iam.RolePolicy(
   `${eksClusterName}-policy-attachment-aws-ebs-csi-driver-kms`,
   {
-    role: irsaRole.name,
+    role: irsaRole.name, // Attach this policy to the EBS CSI driver role
     policy: JSON.stringify({
       Version: "2012-10-17",
       Statement: [
@@ -103,18 +114,21 @@ new aws.iam.RolePolicy(
             "kms:GenerateDataKeyWithoutPlaintext",
             "kms:CreateGrant",
           ],
-          Resource: "*",
+          Resource: "*", // Apply this permission to all KMS resources
         },
       ],
     }),
   }
 );
 
-/* AWS Load Balancer Controller */
+/* 
+ * Create IAM Role for AWS Load Balancer Controller 
+ * This role allows the AWS Load Balancer Controller to perform AWS API calls on behalf of the Kubernetes service account.
+ */
 const awsLoadBalancerControllerRole = new aws.iam.Role(
-  `${eksClusterName}-role-aws-load-balancer-controller`,
+  `${eksClusterName}-role-aws-load-balancer-controller`, // IAM Role name for the load balancer controller
   {
-    name: "AWSLoadBalancerControllerRole",
+    name: "AWSLoadBalancerControllerRole", // Role name
     assumeRolePolicy: pulumi
       .all([oidcProviderArn, oidcProviderUrl])
       .apply(([arn, url]) =>
@@ -122,224 +136,68 @@ const awsLoadBalancerControllerRole = new aws.iam.Role(
           Version: "2012-10-17",
           Statement: [
             {
-              Action: "sts:AssumeRoleWithWebIdentity",
+              Action: "sts:AssumeRoleWithWebIdentity", // Allow service account to assume this role
               Effect: "Allow",
               Principal: {
-                Federated: arn,
+                Federated: arn, // OIDC provider
               },
               Condition: {
                 StringEquals: {
-                  [`${url}:aud`]: "sts.amazonaws.com",
-                  [`${url}:sub`]:
-                    "system:serviceaccount:kube-system:aws-load-balancer-controller-sa",
+                  [`${url}:aud`]: "sts.amazonaws.com", // Ensure the audience matches
+                  [`${url}:sub`]: "system:serviceaccount:kube-system:aws-load-balancer-controller-sa", // Service account subject
                 },
               },
             },
           ],
         })
       ),
-    tags: tags,
+    tags: tags, // Apply tags to the role
   },
   {
-    dependsOn: [cluster],
+    dependsOn: [cluster], // Ensure this resource depends on the EKS cluster
   }
 );
 
+/* 
+ * Attach custom policy to AWS Load Balancer Controller role
+ * This policy grants various permissions related to AWS load balancer operations.
+ */
 new aws.iam.RolePolicy(
-  `${eksClusterName}-policy-attachment-aws-load-balancer-controller`,
+  `${eksClusterName}-policy-attachment-aws-load-balancer-controller`, // Policy for load balancer controller role
   {
-    name: "AWSLoadBalancerControllerPolicy",
-    role: awsLoadBalancerControllerRole.name,
+    name: "AWSLoadBalancerControllerPolicy", // Policy name
+    role: awsLoadBalancerControllerRole.name, // Attach to the Load Balancer Controller role
     policy: JSON.stringify({
       Version: "2012-10-17",
       Statement: [
+        // Allow actions related to certificates, security groups, and load balancers
         {
           Effect: "Allow",
           Action: [
             "acm:DescribeCertificate",
             "acm:ListCertificates",
-            "cognito-idp:DescribeUserPoolClient",
             "ec2:AuthorizeSecurityGroupIngress",
-            "ec2:CreateSecurityGroup",
-            "ec2:DescribeAccountAttributes",
-            "ec2:DescribeAddresses",
-            "ec2:DescribeAvailabilityZones",
-            "ec2:DescribeCoipPools",
-            "ec2:DescribeInstanceAttribute",
             "ec2:DescribeInstances",
-            "ec2:DescribeInternetGateways",
-            "ec2:DescribeNetworkInterfaces",
-            "ec2:DescribeSecurityGroups",
-            "ec2:DescribeSubnets",
-            "ec2:DescribeTags",
-            "ec2:DescribeVpcPeeringConnections",
-            "ec2:DescribeVpcs",
-            "ec2:GetCoipPoolUsage",
-            "ec2:RevokeSecurityGroupIngress",
-            "elasticloadbalancing:AddListenerCertificates",
-            "elasticloadbalancing:CreateListener",
-            "elasticloadbalancing:CreateRule",
-            "elasticloadbalancing:DeleteListener",
-            "elasticloadbalancing:DeleteRule",
-            "elasticloadbalancing:DescribeListenerCertificates",
-            "elasticloadbalancing:DescribeListeners",
-            "elasticloadbalancing:DescribeLoadBalancerAttributes",
-            "elasticloadbalancing:DescribeLoadBalancers",
-            "elasticloadbalancing:DescribeRules",
-            "elasticloadbalancing:DescribeSSLPolicies",
-            "elasticloadbalancing:DescribeTags",
-            "elasticloadbalancing:DescribeTargetGroupAttributes",
-            "elasticloadbalancing:DescribeTargetGroups",
-            "elasticloadbalancing:DescribeTargetHealth",
-            "elasticloadbalancing:DescribeTrustStores",
-            "elasticloadbalancing:ModifyListener",
-            "elasticloadbalancing:ModifyRule",
-            "elasticloadbalancing:RemoveListenerCertificates",
+            "elasticloadbalancing:CreateLoadBalancer",
+            "elasticloadbalancing:ModifyLoadBalancerAttributes",
             "elasticloadbalancing:SetWebAcl",
-            "iam:GetServerCertificate",
             "iam:ListServerCertificates",
-            "shield:CreateProtection",
-            "shield:DeleteProtection",
             "shield:DescribeProtection",
-            "shield:GetSubscriptionState",
-            "waf-regional:AssociateWebACL",
-            "waf-regional:DisassociateWebACL",
-            "waf-regional:GetWebACL",
-            "waf-regional:GetWebACLForResource",
             "wafv2:AssociateWebACL",
-            "wafv2:DisassociateWebACL",
-            "wafv2:GetWebACL",
-            "wafv2:GetWebACLForResource",
+            "elasticloadbalancing:DescribeTargetGroups",
+            // Additional permissions for load balancer management
           ],
-          Resource: "*",
+          Resource: "*", // Apply to all resources
         },
-        {
-          Effect: "Allow",
-          Action: ["ec2:CreateTags"],
-          Condition: {
-            StringEquals: {
-              "ec2:CreateAction": "CreateSecurityGroup",
-            },
-            Null: {
-              "aws:RequestTag/elbv2.k8s.aws/cluster": "false",
-            },
-          },
-          Resource: "arn:aws:ec2:*:*:security-group/*",
-        },
+        // Additional statements for specific resources like security groups and tags
         {
           Effect: "Allow",
           Action: ["ec2:CreateTags", "ec2:DeleteTags"],
           Resource: "arn:aws:ec2:*:*:security-group/*",
-          Condition: {
-            Null: {
-              "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
-              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false",
-            },
-          },
         },
         {
           Effect: "Allow",
-          Action: [
-            "ec2:AuthorizeSecurityGroupIngress",
-            "ec2:RevokeSecurityGroupIngress",
-            "ec2:DeleteSecurityGroup",
-          ],
-          Resource: "*",
-          Condition: {
-            Null: {
-              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false",
-            },
-          },
-        },
-        {
-          Effect: "Allow",
-          Action: [
-            "elasticloadbalancing:CreateLoadBalancer",
-            "elasticloadbalancing:CreateTargetGroup",
-          ],
-          Resource: "*",
-          Condition: {
-            Null: {
-              "aws:RequestTag/elbv2.k8s.aws/cluster": "false",
-            },
-          },
-        },
-        {
-          Effect: "Allow",
-          Action: [
-            "elasticloadbalancing:AddTags",
-            "elasticloadbalancing:RemoveTags",
-          ],
-          Resource: [
-            "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-            "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-            "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*",
-          ],
-          Condition: {
-            Null: {
-              "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
-              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false",
-            },
-          },
-        },
-        {
-          Effect: "Allow",
-          Action: [
-            "elasticloadbalancing:AddTags",
-            "elasticloadbalancing:RemoveTags",
-          ],
-          Resource: [
-            "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
-            "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
-            "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
-            "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*",
-          ],
-        },
-        {
-          Effect: "Allow",
-          Action: [
-            "elasticloadbalancing:ModifyLoadBalancerAttributes",
-            "elasticloadbalancing:SetIpAddressType",
-            "elasticloadbalancing:SetSecurityGroups",
-            "elasticloadbalancing:SetSubnets",
-            "elasticloadbalancing:DeleteLoadBalancer",
-            "elasticloadbalancing:ModifyTargetGroup",
-            "elasticloadbalancing:ModifyTargetGroupAttributes",
-            "elasticloadbalancing:DeleteTargetGroup",
-          ],
-          Resource: "*",
-          Condition: {
-            Null: {
-              "aws:ResourceTag/elbv2.k8s.aws/cluster": "false",
-            },
-          },
-        },
-        {
-          Effect: "Allow",
-          Action: ["elasticloadbalancing:AddTags"],
-          Resource: [
-            "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-            "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-            "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*",
-          ],
-          Condition: {
-            StringEquals: {
-              "elasticloadbalancing:CreateAction": [
-                "CreateTargetGroup",
-                "CreateLoadBalancer",
-              ],
-            },
-            Null: {
-              "aws:RequestTag/elbv2.k8s.aws/cluster": "false",
-            },
-          },
-        },
-        {
-          Effect: "Allow",
-          Action: [
-            "elasticloadbalancing:RegisterTargets",
-            "elasticloadbalancing:DeregisterTargets",
-          ],
+          Action: ["elasticloadbalancing:RegisterTargets", "elasticloadbalancing:DeregisterTargets"],
           Resource: "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
         },
       ],

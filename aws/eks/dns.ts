@@ -32,64 +32,75 @@
  * provisions a wildcard SSL/TLS certificate for secure internal communications using DNS validation.
  */
 
-import * as aws from "@pulumi/aws";
+import * as aws from "@pulumi/aws"; // Import AWS-related resources from Pulumi
 
-import { eksVpc } from "./eks";
-import { awsProvider } from "./providers";
+import { eksVpc } from "./eks"; // Import VPC details from the EKS module
+import { awsProvider } from "./providers"; // Import the AWS provider configuration
 
-import { dnsPrivateDomain, dnsPublicDomain, region, tags } from "./variables";
+import { dnsPrivateDomain, dnsPublicDomain, region, tags } from "./variables"; // Import necessary variables
 
-// Create a private DNS zone 'int.brandon.com'
+/* 
+ * Create a private Route 53 DNS zone for internal domain resolution (e.g., 'int.brandon.com')
+ * This zone is associated with the VPC used by the EKS cluster.
+ */
 const privateZone = new aws.route53.Zone(
-  "dns-int-hosted-zone",
+  "dns-int-hosted-zone", // Name for the private DNS zone
   {
-    name: dnsPrivateDomain,
+    name: dnsPrivateDomain, // The domain name for the private zone
     vpcs: [
       {
-        vpcId: eksVpc.vpcId,
-        vpcRegion: region,
+        vpcId: eksVpc.vpcId, // The VPC ID to associate with the private DNS zone
+        vpcRegion: region, // The region where the VPC is located
       },
     ],
   },
   {
-    provider: awsProvider,
+    provider: awsProvider, // Specify the AWS provider for this resource
   }
 );
 
-// Create a public DNS zone 'brandon.com'
+/* 
+ * Create a public Route 53 DNS zone for external domain resolution (e.g., 'brandon.com')
+ * This zone can be accessed publicly and is also associated with the same VPC.
+ */
 const publicZone = new aws.route53.Zone(
-  "dns-public-hosted-zone",
+  "dns-public-hosted-zone", // Name for the public DNS zone
   {
-    name: dnsPublicDomain,
+    name: dnsPublicDomain, // The domain name for the public zone
     vpcs: [
       {
-        vpcId: eksVpc.vpcId,
-        vpcRegion: region,
+        vpcId: eksVpc.vpcId, // The VPC ID to associate with the public DNS zone
+        vpcRegion: region, // The region where the VPC is located
       },
     ],
   },
   {
-    provider: awsProvider,
+    provider: awsProvider, // Use the AWS provider for this resource
   }
 );
 
-// Define a wildcard SSL/TLS certificate for int. domain
+/* 
+ * Create a wildcard SSL/TLS certificate for the internal domain (e.g., '*.int.brandon.com')
+ * This certificate is used for securing subdomains under the private domain.
+ */
 const wildcardCertificate = new aws.acm.Certificate(
-  "dns-int-wildcard-cert",
+  "dns-int-wildcard-cert", // Name for the SSL certificate
   {
-    domainName: `*.${dnsPrivateDomain}`,
-    validationMethod: "DNS",
-    subjectAlternativeNames: [dnsPrivateDomain], // Optionally include additional SANs if needed
-    tags: tags,
+    domainName: `*.${dnsPrivateDomain}`, // Wildcard domain name for the certificate
+    validationMethod: "DNS", // Validation method (DNS-based validation)
+    subjectAlternativeNames: [dnsPrivateDomain], // Optional SAN (subject alternative name)
+    tags: tags, // Add tags to the certificate resource
   },
   {
-    provider: awsProvider,
+    provider: awsProvider, // Use the AWS provider for this resource
   }
 );
 
-// Export the IDs of the created zones for reference
+// Export the ID of the private DNS zone for use in other parts of the project
 export const privateZoneId = privateZone.zoneId;
+
+// Export the ID of the public DNS zone for use in other parts of the project
 export const publicZoneId = publicZone.zoneId;
 
-// Export the ARN of the wildcard certificate for reference
+// Export the ARN (Amazon Resource Name) of the wildcard SSL certificate for reference
 export const wildcardCertificateArn = wildcardCertificate.arn;

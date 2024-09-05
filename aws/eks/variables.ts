@@ -83,6 +83,3 @@ export const githubOwner = "Cr0n1c";
 export const githubRepository = "testRepo";
 export const githubBootloaderPath = "charts/bootloader";
 export const githubBootloaders = ["infrastructure", "security"];
-
-// Kubernetes Configuration
-export const serviceMesh = "cilium";
