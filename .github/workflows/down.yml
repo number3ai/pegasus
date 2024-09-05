@@ -33,7 +33,7 @@ jobs:
             '**/node_modules'
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
       - name: Navigate to the directory
-        run: cd aws/eks
+        run: cd ./aws/eks
       - name: Install Dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
