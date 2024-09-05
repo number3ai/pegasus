@@ -1,39 +1,39 @@
 /**
- * This Pulumi code sets up IAM roles, policies, and patches for Kubernetes services such as 
+ * This Pulumi code sets up IAM roles, policies, and patches for Kubernetes services such as
  * AWS EBS CSI Driver, Cilium, and AWS Load Balancer Controller in an EKS cluster.
- * 
+ *
  * Breakdown:
- * 
+ *
  * 1. OIDC Provider:
- *    - Extracts the OIDC provider's ARN and URL from the EKS cluster to facilitate the creation of 
+ *    - Extracts the OIDC provider's ARN and URL from the EKS cluster to facilitate the creation of
  *      IAM roles for service accounts.
- * 
+ *
  * 2. AWS EBS CSI Driver:
- *    - Creates an IAM role (`irsaRole`) for the AWS EBS CSI Driver, allowing the service account 
+ *    - Creates an IAM role (`irsaRole`) for the AWS EBS CSI Driver, allowing the service account
  *      `aws-ebs-csi-driver-sa` to assume the role using web identity tokens.
- *    - Attaches the `AmazonEBSCSIDriverPolicy` to this role and adds a custom IAM policy for KMS 
+ *    - Attaches the `AmazonEBSCSIDriverPolicy` to this role and adds a custom IAM policy for KMS
  *      decryption permissions.
- * 
+ *
  * 3. Cilium Service Mesh:
- *    - If `serviceMesh` is set to `cilium`, the existing `aws-node` DaemonSet in the `kube-system` 
+ *    - If `serviceMesh` is set to `cilium`, the existing `aws-node` DaemonSet in the `kube-system`
  *      namespace is patched to add a `nodeSelector`.
- *    - Creates an IAM policy (`ciliumPolicy`) for the Cilium operator to manage EC2 network 
+ *    - Creates an IAM policy (`ciliumPolicy`) for the Cilium operator to manage EC2 network
  *      interfaces and assigns it to a new IAM role (`ciliumRole`).
- * 
+ *
  * 4. AWS Load Balancer Controller:
- *    - Creates an IAM role (`awsLoadBalancerControllerRole`) for the AWS Load Balancer Controller, 
+ *    - Creates an IAM role (`awsLoadBalancerControllerRole`) for the AWS Load Balancer Controller,
  *      allowing the `aws-load-balancer-controller-sa` service account to assume the role.
- *    - Attaches a detailed IAM policy for the role to manage Elastic Load Balancers (ELB), security 
+ *    - Attaches a detailed IAM policy for the role to manage Elastic Load Balancers (ELB), security
  *      groups, and related AWS resources, with additional conditions for tagging resources.
- * 
+ *
  * 5. IAM Policy Attachments:
- *    - Multiple IAM policies are attached to the roles created for the various Kubernetes components 
- *      to ensure they have the correct permissions for interacting with AWS resources like EC2, ELB, 
+ *    - Multiple IAM policies are attached to the roles created for the various Kubernetes components
+ *      to ensure they have the correct permissions for interacting with AWS resources like EC2, ELB,
  *      and KMS.
- * 
+ *
  * Summary:
- * This code sets up the necessary IAM roles and policies for managing AWS resources through 
- * Kubernetes services such as AWS EBS CSI Driver, Cilium, and AWS Load Balancer Controller in an 
+ * This code sets up the necessary IAM roles and policies for managing AWS resources through
+ * Kubernetes services such as AWS EBS CSI Driver, Cilium, and AWS Load Balancer Controller in an
  * EKS environment.
  */
 
@@ -47,8 +47,8 @@ import { eksClusterName, tags } from "./variables"; // Import cluster name and t
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
 const oidcProviderUrl = cluster.core.oidcProvider?.url || "";
 
-/* 
- * Create IAM Role for AWS EBS CSI Driver (Container Storage Interface) 
+/*
+ * Create IAM Role for AWS EBS CSI Driver (Container Storage Interface)
  * This role allows the EBS CSI driver to interact with AWS services on behalf of the Kubernetes service account.
  */
 const irsaRole = new aws.iam.Role(
@@ -70,7 +70,8 @@ const irsaRole = new aws.iam.Role(
               Condition: {
                 StringEquals: {
                   [`${url}:aud`]: "sts.amazonaws.com", // Ensure the audience matches
-                  [`${url}:sub`]: "system:serviceaccount:kube-system:aws-ebs-csi-driver-sa", // Service account subject
+                  [`${url}:sub`]:
+                    "system:serviceaccount:kube-system:aws-ebs-csi-driver-sa", // Service account subject
                 },
               },
             },
@@ -84,8 +85,8 @@ const irsaRole = new aws.iam.Role(
   }
 );
 
-/* 
- * Attach the AmazonEBSCSIDriverPolicy to the IAM Role 
+/*
+ * Attach the AmazonEBSCSIDriverPolicy to the IAM Role
  * This policy allows the EBS CSI driver to perform necessary actions such as volume management.
  */
 new aws.iam.RolePolicyAttachment(
@@ -96,7 +97,7 @@ new aws.iam.RolePolicyAttachment(
   }
 );
 
-/* 
+/*
  * Create a custom IAM policy for EBS CSI Driver with KMS (Key Management Service) permissions
  * This allows the EBS CSI driver to use KMS for encryption operations.
  */
@@ -121,8 +122,8 @@ new aws.iam.RolePolicy(
   }
 );
 
-/* 
- * Create IAM Role for AWS Load Balancer Controller 
+/*
+ * Create IAM Role for AWS Load Balancer Controller
  * This role allows the AWS Load Balancer Controller to perform AWS API calls on behalf of the Kubernetes service account.
  */
 const awsLoadBalancerControllerRole = new aws.iam.Role(
@@ -144,7 +145,8 @@ const awsLoadBalancerControllerRole = new aws.iam.Role(
               Condition: {
                 StringEquals: {
                   [`${url}:aud`]: "sts.amazonaws.com", // Ensure the audience matches
-                  [`${url}:sub`]: "system:serviceaccount:kube-system:aws-load-balancer-controller-sa", // Service account subject
+                  [`${url}:sub`]:
+                    "system:serviceaccount:kube-system:aws-load-balancer-controller-sa", // Service account subject
                 },
               },
             },
@@ -158,7 +160,7 @@ const awsLoadBalancerControllerRole = new aws.iam.Role(
   }
 );
 
-/* 
+/*
  * Attach custom policy to AWS Load Balancer Controller role
  * This policy grants various permissions related to AWS load balancer operations.
  */
@@ -197,7 +199,10 @@ new aws.iam.RolePolicy(
         },
         {
           Effect: "Allow",
-          Action: ["elasticloadbalancing:RegisterTargets", "elasticloadbalancing:DeregisterTargets"],
+          Action: [
+            "elasticloadbalancing:RegisterTargets",
+            "elasticloadbalancing:DeregisterTargets",
+          ],
           Resource: "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
         },
       ],

@@ -1,35 +1,35 @@
 /**
  * This Pulumi code creates IAM roles and instance profiles for EKS worker nodes.
- * It also attaches managed AWS IAM policies to these roles to allow EKS nodes 
+ * It also attaches managed AWS IAM policies to these roles to allow EKS nodes
  * to interact with AWS resources.
- * 
+ *
  * Breakdown:
- * 
+ *
  * 1. Managed Policies:
  *    - `managedPolicyArns` is a list of IAM managed policies including:
  *      - `AmazonEKSWorkerNodePolicy`: Grants permissions for EKS worker nodes.
  *      - `AmazonEKS_CNI_Policy`: Enables the use of the Amazon VPC CNI plugin for Kubernetes.
  *      - `AmazonEC2ContainerRegistryReadOnly`: Grants read-only access to Amazon ECR.
  *      - `CloudWatchAgentServerPolicy`: Allows nodes to send logs and metrics to CloudWatch.
- * 
+ *
  * 2. `createRole` function:
- *    - This function creates an IAM role for EKS worker nodes, allowing EC2 instances to assume 
+ *    - This function creates an IAM role for EKS worker nodes, allowing EC2 instances to assume
  *      the role via `assumeRolePolicy` for the `ec2.amazonaws.com` service.
- *    - It iterates through the `managedPolicyArns` array, creating a `RolePolicyAttachment` 
+ *    - It iterates through the `managedPolicyArns` array, creating a `RolePolicyAttachment`
  *      for each managed policy and attaches it to the role.
- * 
+ *
  * 3. `createRoles` function:
  *    - This function creates multiple IAM roles based on the given quantity.
  *    - It calls `createRole` for each role, appending a unique index to the role name.
- * 
+ *
  * 4. `createInstanceProfiles` function:
  *    - This function creates an IAM instance profile for each role in the given `roles` array.
- *    - Instance profiles are associated with EC2 instances, and each profile is linked to 
+ *    - Instance profiles are associated with EC2 instances, and each profile is linked to
  *      a specific IAM role.
- * 
+ *
  * Summary:
- * This code simplifies the creation of IAM roles and instance profiles for EKS worker nodes, 
- * ensuring that the correct AWS policies are attached for secure and efficient operation 
+ * This code simplifies the creation of IAM roles and instance profiles for EKS worker nodes,
+ * ensuring that the correct AWS policies are attached for secure and efficient operation
  * of the Kubernetes cluster on AWS.
  */
 
