@@ -83,3 +83,4 @@ export const githubOwner = "number3ai";
 export const githubRepository = "caprica";
 export const githubBootloaderPath = "charts/bootloader";
 export const githubBootloaders = ["infrastructure", "security"];
+
