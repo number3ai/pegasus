@@ -142,6 +142,7 @@ export const argocd = new kubernetes.helm.v3.Release(
       repo: "https://argoproj.github.io/argo-helm", // Helm chart repository URL
     },
     values: {
+      environment: environment, // Add environment-specific labels
       configs: {
         params: {
           "server.insecure": true, // Enable insecure mode for ArgoCD server
@@ -174,59 +175,55 @@ export const argocd = new kubernetes.helm.v3.Release(
 );
 
 // After ArgoCD is installed, set up "App of Apps" pattern for deploying multiple applications.
-argocd.resourceNames.apply(() => {
-  githubBootloaders.map(
-    (key) =>
-      new kubernetes.helm.v4.Chart(
-        `argocd-${key}-apps`, // Name of the chart release
-        {
-          chart: "argocd-apps", // Helm chart for ArgoCD applications
-          namespace: "argocd", // ArgoCD namespace
-          version: argoCdAppsVersion, // Chart version
-          repositoryOpts: {
-            repo: "https://argoproj.github.io/argo-helm", // Helm chart repository
-          },
-          values: {
-            applications: {
-              [`app-of-apps-${key}`]: {
-                namespace: "argocd", // Target namespace for application
-                additionalLabels: {
-                  environment: environment, // Add environment-specific labels
+githubBootloaders.map(key =>
+  new kubernetes.helm.v4.Chart(
+    `argocd-${key}-apps`, // Name of the chart release
+    {
+      chart: "argocd-apps", // Helm chart for ArgoCD applications
+      namespace: "argocd", // ArgoCD namespace
+      version: argoCdAppsVersion, // Chart version
+      repositoryOpts: {
+        repo: "https://argoproj.github.io/argo-helm", // Helm chart repository
+      },
+      values: {
+        applications: {
+          [`app-of-apps-${key}`]: {
+            namespace: "argocd", // Target namespace for application
+            additionalLabels: {
+              environment: environment, // Add environment-specific labels
+            },
+            project: "default", // Default ArgoCD project
+            sources: [
+              {
+                repoURL: githubRepositoryUrl, // GitHub repo for application code
+                path: githubBootloaderPath, // Path in the GitHub repo
+                targetRevision: "HEAD", // Track the latest code on the HEAD branch
+                helm: {
+                  ignoreMissingValueFiles: true, // Ignore missing Helm values files
+                  valueFiles: [
+                    "values.yaml", // Base values file
+                    `/releases/${environment}/app-of-apps-${key}.yaml`, // Environment-specific values file
+                  ],
                 },
-                project: "default", // Default ArgoCD project
-                sources: [
-                  {
-                    repoURL: githubRepositoryUrl, // GitHub repo for application code
-                    path: `${githubBootloaderPath}`, // Path in the GitHub repo
-                    targetRevision: "HEAD", // Track the latest code on the HEAD branch
-                    helm: {
-                      ignoreMissingValueFiles: true, // Ignore missing Helm values files
-                      valueFiles: [
-                        "values.yaml", // Base values file
-                        `values-${environment}.yaml`, // Environment-specific values file
-                        `values-${key}.yaml`, // Key-specific values file
-                        `values-${key}-${environment}.yaml`, // Combined environment and key values
-                      ],
-                    },
-                  },
-                ],
-                destination: {
-                  server: "https://kubernetes.default.svc", // Destination Kubernetes server
-                  namespace: "argocd", // Target namespace in the destination cluster
-                },
-                syncPolicy: {
-                  automated: {
-                    prune: true, // Automatically prune unused resources
-                    selfHeal: true, // Enable self-healing to fix drift
-                  },
-                },
+              },
+            ],
+            destination: {
+              server: "https://kubernetes.default.svc", // Destination Kubernetes server
+              namespace: "argocd", // Target namespace in the destination cluster
+            },
+            syncPolicy: {
+              automated: {
+                prune: true, // Automatically prune unused resources
+                selfHeal: true, // Enable self-healing to fix drift
               },
             },
           },
         },
-        {
-          provider: k8sProvider, // Kubernetes provider configuration
-        }
-      )
-  );
-});
+      },
+    },
+    {
+      dependsOn: [argocd], // Wait for ArgoCD to be installed
+      provider: k8sProvider, // Kubernetes provider configuration
+    }
+  )
+);
