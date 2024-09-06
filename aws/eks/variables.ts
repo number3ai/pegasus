@@ -79,7 +79,7 @@ export const argoCdAppsVersion = "2.0.0";
 export const argoCdVersion = "7.3.9";
 
 // GitHub Configuration
-export const githubOwner = "Cr0n1c";
-export const githubRepository = "testRepo";
+export const githubOwner = "number3ai";
+export const githubRepository = "caprica";
 export const githubBootloaderPath = "charts/bootloader";
 export const githubBootloaders = ["infrastructure", "security"];

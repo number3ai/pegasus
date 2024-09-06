@@ -142,6 +142,7 @@ export const argocd = new kubernetes.helm.v3.Release(
       repo: "https://argoproj.github.io/argo-helm", // Helm chart repository URL
     },
     values: {
+      environment: environment, // Add environment-specific labels
       configs: {
         params: {
           "server.insecure": true, // Enable insecure mode for ArgoCD server
@@ -197,15 +198,13 @@ argocd.resourceNames.apply(() => {
                 sources: [
                   {
                     repoURL: githubRepositoryUrl, // GitHub repo for application code
-                    path: `${githubBootloaderPath}`, // Path in the GitHub repo
+                    path: githubBootloaderPath, // Path in the GitHub repo
                     targetRevision: "HEAD", // Track the latest code on the HEAD branch
                     helm: {
                       ignoreMissingValueFiles: true, // Ignore missing Helm values files
                       valueFiles: [
                         "values.yaml", // Base values file
-                        `values-${environment}.yaml`, // Environment-specific values file
-                        `values-${key}.yaml`, // Key-specific values file
-                        `values-${key}-${environment}.yaml`, // Combined environment and key values
+                        `/releases/${environment}/app-of-apps-${key}.yaml`, // Environment-specific values file
                       ],
                     },
                   },
