@@ -66,7 +66,7 @@ const githubRepositoryUrl = `git@github.com:${githubOwner}/${githubRepository}.g
  * Generate an ED25519 SSH private key for authenticating the EKS cluster with the GitHub repository.
  */
 const repositoryDeployKey = new tls.PrivateKey(
-  `${eksClusterName}-eks-cluster-deploy-key`,
+  "eks-cluster-deploy-key",
   {
     algorithm: "ED25519", // Algorithm for SSH key generation
   }
