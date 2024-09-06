@@ -7,6 +7,11 @@ on:
 
 jobs:
   preview:
+    permissions:
+      id-token: write
+      contents: read
+      issues: write
+      pull-requests: write
     name: Preview
     runs-on: ubuntu-latest
     env:
