@@ -1,6 +1,8 @@
 name: Pulumi Update
 on:
   push:
+    paths:
+      - aws/eks/**
     branches:
       - main
   workflow_dispatch:
