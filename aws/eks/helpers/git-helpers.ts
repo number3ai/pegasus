@@ -1,4 +1,5 @@
 import * as github from "@pulumi/github";
+import * as pulumi from "@pulumi/pulumi";
 
 import * as crypto from 'crypto';
 import * as yaml from 'js-yaml';
@@ -6,7 +7,6 @@ import * as yaml from 'js-yaml';
 import { Buffer } from 'buffer'; // Node.js built-in module
 
 import { environment, githubRepository } from "../variables";
-import { json } from "stream/consumers";
 
 // Function to convert JSON to YAML and then encode to base64
 function jsonToYamlBase64(jsonObject: object): string {
@@ -30,7 +30,16 @@ export type GitFileMap = {
   fileName: string;
   json: object;
 };
-  
+
+// Function to output the results after all the `apply` callbacks have been run
+export function processGitPrFiles(gitPrFiles: Array<GitFileMap>): Array<GitFileMap> {
+  // Since Pulumi ensures that outputs are processed in the right order, you can safely output the result
+  pulumi.all(gitPrFiles).apply(() => {
+    return gitPrFiles;
+  });
+  return gitPrFiles;
+}
+
 export function createGitPR(branchName: string, files: Array<GitFileMap>) {  
   console.log(`Creating a new PR for branch: ${branchName}`);
   // Create a new branch from the base branch

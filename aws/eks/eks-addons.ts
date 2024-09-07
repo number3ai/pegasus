@@ -43,14 +43,13 @@ import * as pulumi from "@pulumi/pulumi"; // Import Pulumi utilities
 import { wildcardCertificate } from "./dns"; // Import the wildcard SSL/TLS certificate
 import { cluster, eksVpc } from "./eks"; // Import the EKS cluster details
 import { eksClusterName, environment, region, tags } from "./variables"; // Import cluster name and tags
-import { GitFileMap } from "./helpers/git-helpers"; // Import the createGitPR function
-import { settings } from "@pulumi/kubernetes";
+import { GitFileMap, processGitPrFiles } from "./helpers/git-helpers"; // Import the createGitPR function
 
 // Get the OIDC (OpenID Connect) provider ARN and URL from the EKS cluster
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
 const oidcProviderUrl = cluster.core.oidcProvider?.url || "";
 
-export const gitPrFilesEksAddons = new Array<GitFileMap>();
+export const gitPrFiles = new Array<GitFileMap>();
 
 /*
  * Create IAM Role for AWS EBS CSI Driver (Container Storage Interface)
@@ -128,20 +127,21 @@ new aws.iam.RolePolicy(
 );
 
 awsEbsCsiDriverIrsaRole.arn.apply(arn => {
-  gitPrFilesEksAddons.push({
-    fileName: "aws-ebs-csi-driver",
-    json: {
-      "aws-ebs-csi-driver": {
-        controller: {
-          serviceAccount: {
-            annotations: {
-              "eks.amazonaws.com/role-arn": arn,
-            }
-          }
-        }
-      }
-    }
-  });
+  gitPrFiles.push({
+        fileName: "aws-ebs-csi-driver",
+        json: {
+            "aws-ebs-csi-driver": {
+                controller: {
+                    serviceAccount: {
+                        annotations: {
+                            "eks.amazonaws.com/role-arn": arn,
+                        },
+                    },
+                },
+            },
+        },
+    });
+    return; // Ensure the apply callback returns nothing (void)
 });
 
 /*
@@ -233,7 +233,7 @@ new aws.iam.RolePolicy(
 );
 
 awsLoadBalancerControllerRole.arn.apply(arn => {
-  gitPrFilesEksAddons.push({
+  gitPrFiles.push({
     fileName: "aws-load-balancer-controller",
     json: {
       "aws-load-balancer-controller": {
@@ -248,9 +248,10 @@ awsLoadBalancerControllerRole.arn.apply(arn => {
       }
     }
   });
+  return;
 });
 
-gitPrFilesEksAddons.push({
+gitPrFiles.push({
   fileName: "amazon-cloudwatch-observability",
   json: { 
     "amazon-cloudwatch-observability": {
@@ -261,7 +262,7 @@ gitPrFilesEksAddons.push({
 });
 
 wildcardCertificate.arn.apply(arn => {
-  gitPrFilesEksAddons.push({
+  gitPrFiles.push({
     fileName: "ingress-nginx",
     json: {
       "ingress-nginx": {
@@ -298,9 +299,10 @@ wildcardCertificate.arn.apply(arn => {
       }
     }
   });
+  return;
 });
 
-gitPrFilesEksAddons.push({
+gitPrFiles.push({
   fileName: "karpenter",
   json: {
     "karpenter": {
@@ -310,3 +312,5 @@ gitPrFilesEksAddons.push({
     }
   }
 });
+
+export const eksAddonsPrFiles = processGitPrFiles(gitPrFiles);
