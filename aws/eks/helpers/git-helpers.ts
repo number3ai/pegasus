@@ -6,12 +6,15 @@ import * as yaml from 'js-yaml';
 import { Buffer } from 'buffer'; // Node.js built-in module
 
 import { environment, githubRepository } from "../variables";
+import { json } from "stream/consumers";
 
 // Function to convert JSON to YAML and then encode to base64
 function jsonToYamlBase64(jsonObject: object): string {
+  console.log(jsonObject);
   const yamlString = yaml.dump(jsonObject);
+  console.log(yamlString);
   const base64String = Buffer.from(yamlString).toString('base64');
-  
+  console.log(base64String);
   return base64String;
 }
 
