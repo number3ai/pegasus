@@ -9,25 +9,25 @@
  *      IAM roles for service accounts.
  *
  * 2. AWS EBS CSI Driver:
- *    - Creates an IAM role (`irsaRole`) for the AWS EBS CSI Driver, allowing the service account
+ *    - Creates an IAM role (`awsEbsCsiDriverIrsaRole`) for the AWS EBS CSI Driver, allowing the service account
  *      `aws-ebs-csi-driver-sa` to assume the role using web identity tokens.
  *    - Attaches the `AmazonEBSCSIDriverPolicy` to this role and adds a custom IAM policy for KMS
  *      decryption permissions.
  *
  * 3. Cilium Service Mesh:
- *    - If `serviceMesh` is set to `cilium`, the existing `aws-node` DaemonSet in the `kube-system`
- *      namespace is patched to add a `nodeSelector`.
+ *    - If `serviceMesh` is set to `cilium`, patches the existing `aws-node` DaemonSet in the `kube-system`
+ *      namespace to add a `nodeSelector`.
  *    - Creates an IAM policy (`ciliumPolicy`) for the Cilium operator to manage EC2 network
  *      interfaces and assigns it to a new IAM role (`ciliumRole`).
  *
  * 4. AWS Load Balancer Controller:
  *    - Creates an IAM role (`awsLoadBalancerControllerRole`) for the AWS Load Balancer Controller,
  *      allowing the `aws-load-balancer-controller-sa` service account to assume the role.
- *    - Attaches a detailed IAM policy for the role to manage Elastic Load Balancers (ELB), security
+ *    - Attaches a detailed IAM policy to this role to manage Elastic Load Balancers (ELB), security
  *      groups, and related AWS resources, with additional conditions for tagging resources.
  *
  * 5. IAM Policy Attachments:
- *    - Multiple IAM policies are attached to the roles created for the various Kubernetes components
+ *    - Attaches multiple IAM policies to the roles created for various Kubernetes components
  *      to ensure they have the correct permissions for interacting with AWS resources like EC2, ELB,
  *      and KMS.
  *
@@ -126,22 +126,22 @@ new aws.iam.RolePolicy(
   }
 );
 
-awsEbsCsiDriverIrsaRole.arn.apply(arn => {
+awsEbsCsiDriverIrsaRole.arn.apply((arn) => {
   gitPrFiles.push({
-        fileName: "aws-ebs-csi-driver",
-        json: {
-            "aws-ebs-csi-driver": {
-                controller: {
-                    serviceAccount: {
-                        annotations: {
-                            "eks.amazonaws.com/role-arn": arn,
-                        },
-                    },
-                },
+    fileName: "aws-ebs-csi-driver",
+    json: {
+      "aws-ebs-csi-driver": {
+        controller: {
+          serviceAccount: {
+            annotations: {
+              "eks.amazonaws.com/role-arn": arn,
             },
+          },
         },
-    });
-    return; // Ensure the apply callback returns nothing (void)
+      },
+    },
+  });
+  return; // Ensure the apply callback returns nothing (void)
 });
 
 /*
@@ -209,7 +209,6 @@ new aws.iam.RolePolicy(
             "shield:DescribeProtection",
             "wafv2:AssociateWebACL",
             "elasticloadbalancing:DescribeTargetGroups",
-            // Additional permissions for load balancer management
           ],
           Resource: "*", // Apply to all resources
         },
@@ -232,7 +231,7 @@ new aws.iam.RolePolicy(
   }
 );
 
-awsLoadBalancerControllerRole.arn.apply(arn => {
+awsLoadBalancerControllerRole.arn.apply((arn) => {
   gitPrFiles.push({
     fileName: "aws-load-balancer-controller",
     json: {
@@ -242,26 +241,34 @@ awsLoadBalancerControllerRole.arn.apply(arn => {
         serviceAccount: {
           annotations: {
             "eks.amazonaws.com/role-arn": arn,
-          }
+          },
         },
         vpcId: eksVpc.vpcId,
-      }
-    }
+      },
+    },
   });
   return;
 });
 
+/*
+ * Define configurations for Amazon CloudWatch observability
+ * This includes settings related to CloudWatch monitoring and logging.
+ */
 gitPrFiles.push({
   fileName: "amazon-cloudwatch-observability",
-  json: { 
+  json: {
     "amazon-cloudwatch-observability": {
       clusterName: environment,
       region: region,
-    }
-  }
+    },
+  },
 });
 
-wildcardCertificate.arn.apply(arn => {
+/*
+ * Configure Ingress-NGINX with ALB (Application Load Balancer) settings
+ * This includes SSL/TLS configuration and ALB-specific annotations for handling ingress traffic.
+ */
+wildcardCertificate.arn.apply((arn) => {
   gitPrFiles.push({
     fileName: "ingress-nginx",
     json: {
@@ -270,50 +277,59 @@ wildcardCertificate.arn.apply(arn => {
           service: {
             annotations: {
               "alb.ingress.kubernetes.io/actions.ssl-redirect": {
-                Type: "redirect", 
-                RedirectConfig: { 
-                  Protocol: "HTTPS", 
-                  Port: "443", 
-                  StatusCode: "HTTP_301"
-                }
+                Type: "redirect",
+                RedirectConfig: {
+                  Protocol: "HTTPS",
+                  Port: "443",
+                  StatusCode: "HTTP_301",
+                },
               },
               "alb.ingress.kubernetes.io/backend-protocol": "HTTPS",
               "alb.ingress.kubernetes.io/certificate-arn": arn,
               "alb.ingress.kubernetes.io/listen-ports": [
-                { HTTP: 80 }, 
-                { HTTPS: 443}
+                { HTTP: 80 },
+                { HTTPS: 443 },
               ],
               "alb.ingress.kubernetes.io/proxy-body-size": "0",
               "alb.ingress.kubernetes.io/scheme": "internal",
-              "alb.ingress.kubernetes.io/ssl-policy": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+              "alb.ingress.kubernetes.io/ssl-policy":
+                "ELBSecurityPolicy-FS-1-2-Res-2020-10",
               "alb.ingress.kubernetes.io/ssl-redirect": "443",
               "alb.ingress.kubernetes.io/target-type": "ip",
               "kubernetes.io/ingress.class": "alb",
-              "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "http",
-              "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout": "3600",
+              "service.beta.kubernetes.io/aws-load-balancer-backend-protocol":
+                "http",
+              "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout":
+                "3600",
               "service.beta.kubernetes.io/aws-load-balancer-ssl-cert": arn,
               "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",
-            }
-          }
-        }
-      }
-    }
+            },
+          },
+        },
+      },
+    },
   });
   return;
 });
 
+/*
+ * Define Karpenter configuration settings
+ * This configuration is for automatic Kubernetes cluster scaling using Karpenter.
+ */
 gitPrFiles.push({
   fileName: "karpenter",
   json: {
-    "karpenter": {
+    karpenter: {
       settings: {
         clusterName: environment,
-      }
-    }
-  }
+      },
+    },
+  },
 });
 
-export const eksAddonsPrFiles = pulumi.all([awsEbsCsiDriverIrsaRole.arn, awsLoadBalancerControllerRole.arn]).apply(() => {
-  // Process the git PR files after both ARNs are resolved
-  return processGitPrFiles(gitPrFiles);
-});
+export const eksAddonsPrFiles = pulumi
+  .all([awsEbsCsiDriverIrsaRole.arn, awsLoadBalancerControllerRole.arn])
+  .apply(() => {
+    // Process the git PR files after both ARNs are resolved
+    return processGitPrFiles(gitPrFiles);
+  });

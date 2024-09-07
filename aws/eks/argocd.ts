@@ -4,18 +4,18 @@
  *
  * Breakdown:
  *
- * 1. GitHub Deployment Key Setup:
+ * 1. **GitHub Deployment Key Setup:**
  *    - Generates an ED25519 SSH private key using the `tls` package.
  *    - Registers this SSH key as a "deploy key" in a specified GitHub repository, allowing
  *      the EKS cluster to securely pull code from the repository.
  *
- * 2. ArgoCD Admin Password:
+ * 2. **ArgoCD Admin Password:**
  *    - Creates a random 24-character password for the ArgoCD admin user using `RandomPassword`.
  *    - Stores the ArgoCD admin credentials (username and password) in AWS Secrets Manager
  *      using the `aws.secretsmanager.Secret` resource to ensure sensitive credentials are
  *      stored securely.
  *
- * 3. ArgoCD Installation via Helm:
+ * 3. **ArgoCD Installation via Helm:**
  *    - Uses the `kubernetes.helm.v3.Release` resource to install ArgoCD on the Kubernetes cluster.
  *    - Configures ArgoCD to allow insecure connections (via the `server.insecure` setting) and
  *      sets up GitHub repository access using the generated SSH key.
@@ -23,7 +23,7 @@
  *    - Configures an Nginx-based ingress for ArgoCD, accessible via a public DNS domain
  *      (`argocd.{dnsPublicDomain}`).
  *
- * 4. ArgoCD Application Management:
+ * 4. **ArgoCD Application Management:**
  *    - Once ArgoCD is installed, the script sets up "App of Apps" patterns using the
  *      `kubernetes.helm.v4.Chart` resource.
  *    - Each ArgoCD app pulls its configuration from a specific path in the GitHub repository and
@@ -68,12 +68,9 @@ const githubRepositoryUrl = `git@github.com:${githubOwner}/${githubRepository}.g
  * GitHub Deployment Key Setup
  * Generate an ED25519 SSH private key for authenticating the EKS cluster with the GitHub repository.
  */
-const repositoryDeployKey = new tls.PrivateKey(
-  "eks-cluster-deploy-key",
-  {
-    algorithm: "ED25519", // Algorithm for SSH key generation
-  }
-);
+const repositoryDeployKey = new tls.PrivateKey("eks-cluster-deploy-key", {
+  algorithm: "ED25519", // Algorithm for SSH key generation
+});
 
 // Register the SSH key as a GitHub deploy key in the specified repository
 new github.RepositoryDeployKey(
@@ -178,7 +175,7 @@ export const argocd = new kubernetes.helm.v3.Release(
 );
 
 // After ArgoCD is installed, set up "App of Apps" pattern for deploying multiple applications.
-githubBootloaders.map(key => {
+githubBootloaders.map((key) => {
   new kubernetes.helm.v4.Chart(
     `argocd-${key}-apps`, // Name of the chart release
     {
