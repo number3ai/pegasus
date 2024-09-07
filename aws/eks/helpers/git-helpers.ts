@@ -29,9 +29,9 @@ import { githubProvider } from "../providers"; // Import custom GitHub provider
 import { environment, githubOwner, githubRepository } from "../variables"; // Import environment variables
 
 // Function to convert JSON to YAML and then encode to base64
-function jsonToYamlBase64(jsonObject: object): string {
+function jsonToYaml(jsonObject: object): string {
   // Convert the JSON object to YAML, then encode the YAML as a base64 string
-  return Buffer.from(yaml.dump(jsonObject)).toString("base64");
+  return Buffer.from(yaml.dump(jsonObject)).toString("ascii");
 }
 
 // Function to generate a random string of a specified length
@@ -91,7 +91,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         commitAuthor: "Pulumi Bot", // Author for the commit
         commitEmail: "bot@pulumi.com", // Email for the commit
         commitMessage: `Add new file to the repository: ${filePath}`, // Commit message
-        content: jsonToYamlBase64(file.json), // Convert JSON to YAML and encode to base64 before adding the content
+        content: jsonToYaml(file.json), // Convert JSON to YAML and encode to base64 before adding the content
         file: filePath, // Path of the file in the repo
         overwriteOnCreate: true, // Overwrite if the file already exists
         repository: githubRepository, // Target repository
