@@ -67,13 +67,11 @@ export function processGitPrFiles(
 
 // Create a GitHub Pull Request with a branch and a set of files
 export function createGitPR(branchName: string, files: Array<GitFileMap>) {
-  const fullRepositoryName = `${githubOwner}/${githubRepository}`; // Full GitHub repository name
-
   // Create a new branch in the repository
   new github.Branch(
     `${hashString(branchName)}-git-branch`,
     {
-      repository: fullRepositoryName,
+      repository: githubRepository,
       branch: branchName,
     },
     {
@@ -96,7 +94,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         content: jsonToYamlBase64(file.json), // Convert JSON to YAML and encode to base64 before adding the content
         file: filePath, // Path of the file in the repo
         overwriteOnCreate: true, // Overwrite if the file already exists
-        repository: fullRepositoryName, // Target repository
+        repository: githubRepository, // Target repository
       },
       {
         provider: githubProvider, // Use the custom GitHub provider
@@ -109,7 +107,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
     `${generateRandomString(32)}-git-pr`,
     {
       baseRef: "main", // Base branch to merge into (main branch)
-      baseRepository: fullRepositoryName, // Repository name
+      baseRepository: githubRepository, // Repository name
       headRef: branchName, // Source branch (created branch)
       title: `Automated PR from devops pipeline - ${Date.now().toString()}`, // PR title with a timestamp
       body: "This PR was created automatically by the pegasus bot.", // PR description
