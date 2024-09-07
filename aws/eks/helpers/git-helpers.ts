@@ -29,25 +29,32 @@ export type GitFileMap = {
 };
   
 export function createGitPR(branchName: string, files: Array<GitFileMap>) {  
+  console.log(`Creating a new PR for branch: ${branchName}`);
   // Create a new branch from the base branch
   new github.Branch(`${hashString(branchName)}-git-branch`, {  
     repository: githubRepository,
     branch: branchName
   });
-
+  console.log(`Branch created: ${branchName}`);
   for (const file of files) {
+    console.log(`Adding file to branch: ${file.fileName}`);
     const filePath = `/releases/${environment}/${file.fileName}.generated.yaml`;
-
+    console.log(`File path: ${filePath}`);
+    const content = jsonToYamlBase64(file.json);
+    console.log(`Content: ${content}`);
     // Add a new file to the new branch
     new github.RepositoryFile(`${generateRandomString(32)}-git-file`, {
       repository: githubRepository,
       file: filePath,
       branch: branchName,
-      content: jsonToYamlBase64(file.json), // Convert content to base64
+      content: content, // Convert content to base64
       commitMessage: `Add new file to the repository: ${filePath}`,
     });
+    console.log(`File added: ${file.fileName}`);
+    console.log("--------------------")
   }
 
+  console.log(`Creating a new PR for branch: ${branchName}`);
   // Create a pull request from the new branch to the base branch
   const pullRequest = new github.RepositoryPullRequest(`${generateRandomString(32)}-git-pr`, {
     baseRef: "main",
@@ -56,4 +63,5 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
     title: `Automated PR from devops pipeline - ${Date.now()}`,
     body: "This PR was created automatically by the pegasus bot."
   });
+  console.log(`PR created: ${pullRequest.number}`);
 }
