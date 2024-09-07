@@ -81,7 +81,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
 
   // Loop through each file in the files array and create a file in the GitHub repository
   for (const file of files) {
-    const filePath = `/releases/${environment}/${file.fileName}.generated.yaml`; // File path in the repo
+    const filePath = `releases/${environment}/${file.fileName}.generated.yaml`; // File path in the repo
 
     // Add or overwrite a file in the specified branch
     new github.RepositoryFile(
