@@ -313,10 +313,7 @@ gitPrFiles.push({
   }
 });
 
-export const eksAddonsPrFiles = awsEbsCsiDriverIrsaRole.arn.apply(() => {
-  awsLoadBalancerControllerRole.arn.apply(() => {
-    const gitFiles = processGitPrFiles(gitPrFiles);
-    return gitFiles;
-  });
-  return gitPrFiles;
+export const eksAddonsPrFiles = pulumi.all([awsEbsCsiDriverIrsaRole.arn, awsLoadBalancerControllerRole.arn]).apply(() => {
+  // Process the git PR files after both ARNs are resolved
+  return processGitPrFiles(gitPrFiles);
 });
