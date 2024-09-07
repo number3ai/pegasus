@@ -57,6 +57,9 @@ import {
   githubRepository,
   tags,
 } from "./variables"; // Import necessary variables
+import { GitFileMap } from "./helpers/git-helpers"; // Import the createGitPR function
+
+export const gitPrFilesArgoCd = new Array<GitFileMap>();
 
 // Construct GitHub repository URL
 const githubRepositoryUrl = `git@github.com:${githubOwner}/${githubRepository}.git`;
@@ -175,7 +178,7 @@ export const argocd = new kubernetes.helm.v3.Release(
 );
 
 // After ArgoCD is installed, set up "App of Apps" pattern for deploying multiple applications.
-githubBootloaders.map(key =>
+githubBootloaders.map(key => {
   new kubernetes.helm.v4.Chart(
     `argocd-${key}-apps`, // Name of the chart release
     {
@@ -202,6 +205,7 @@ githubBootloaders.map(key =>
                   ignoreMissingValueFiles: true, // Ignore missing Helm values files
                   valueFiles: [
                     "values.yaml", // Base values file
+                    `releases/default/app-of-apps-${key}.yaml`, // Default specific values file
                     `/releases/${environment}/app-of-apps-${key}.yaml`, // Environment-specific values file
                   ],
                 },
@@ -225,5 +229,12 @@ githubBootloaders.map(key =>
       dependsOn: [argocd], // Wait for ArgoCD to be installed
       provider: k8sProvider, // Kubernetes provider configuration
     }
-  )
-);
+  );
+
+  gitPrFilesArgoCd.push({
+    fileName: `app-of-apps-${key}`,
+    json: {
+      environment: environment,
+    },
+  });
+});

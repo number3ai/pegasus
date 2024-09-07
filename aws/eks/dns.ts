@@ -83,7 +83,7 @@ const publicZone = new aws.route53.Zone(
  * Create a wildcard SSL/TLS certificate for the internal domain (e.g., '*.int.brandon.com')
  * This certificate is used for securing subdomains under the private domain.
  */
-const wildcardCertificate = new aws.acm.Certificate(
+export const wildcardCertificate = new aws.acm.Certificate(
   "dns-int-wildcard-cert", // Name for the SSL certificate
   {
     domainName: `*.${dnsPrivateDomain}`, // Wildcard domain name for the certificate
