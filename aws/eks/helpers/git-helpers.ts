@@ -6,7 +6,7 @@ import * as yaml from 'js-yaml';
 import { Buffer } from 'buffer'; // Node.js built-in module
 import { createHash, randomBytes } from 'crypto';
 
-import { environment, githubRepository } from "../variables";
+import { environment, githubOwner, githubRepository } from "../variables";
 
 // Function to convert JSON to YAML and then encode to base64
 function jsonToYamlBase64(jsonObject: object): string {
@@ -36,9 +36,11 @@ export function processGitPrFiles(gitPrFiles: Array<GitFileMap>): Array<GitFileM
 }
 
 export function createGitPR(branchName: string, files: Array<GitFileMap>) {  
+  const fullRepositoryName = `${githubOwner}/${githubRepository}`;
+
   // Create a new branch from the base branch
   new github.Branch(`${hashString(branchName)}-git-branch`, {  
-    repository: githubRepository,
+    repository: fullRepositoryName,
     branch: branchName
   });
 
@@ -47,17 +49,20 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
 
     // Add a new file to the new branch
     new github.RepositoryFile(`${generateRandomString(32)}-git-file`, {
-      repository: githubRepository,
-      file: filePath,
       branch: branchName,
-      content: jsonToYamlBase64(file.json),
+      commitAuthor: "Pulumi Bot", // Optional: Commit author name
+      commitEmail: "bot@pulumi.com", // Optional: Commit author email
       commitMessage: `Add new file to the repository: ${filePath}`,
+      content: jsonToYamlBase64(file.json),
+      file: filePath,
+      overwriteOnCreate: true, // Overwrite the file if it already exists
+      repository: fullRepositoryName,
     });
   }
 
   new github.RepositoryPullRequest(`${generateRandomString(32)}-git-pr`, {
     baseRef: "main",
-    baseRepository: githubRepository,
+    baseRepository: fullRepositoryName,
     headRef: branchName,
     title: `Automated PR from devops pipeline - ${Date.now().toString()}`,
     body: "This PR was created automatically by the pegasus bot."
