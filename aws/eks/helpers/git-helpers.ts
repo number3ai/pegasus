@@ -36,21 +36,24 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
   });
 
   for (const file of files) {
+    const filePath = `/releases/${environment}/${file.fileName}.generated.yaml`;
+
     // Add a new file to the new branch
-    new github.RepositoryFile(`${generateRandomString(40)}-git-file`, {
+    new github.RepositoryFile(`${generateRandomString(32)}-git-file`, {
       repository: githubRepository,
-      file: `/releases/${environment}/${file.fileName}.generated.yaml`,
+      file: filePath,
       branch: branchName,
       content: jsonToYamlBase64(file.json), // Convert content to base64
-      commitMessage: "Add new file",
+      commitMessage: `Add new file to the repository: ${filePath}`,
     });
   }
 
   // Create a pull request from the new branch to the base branch
-  const pullRequest = new github.RepositoryPullRequest("newPR", {
-    repository: githubRepository,
+  const pullRequest = new github.RepositoryPullRequest(`${generateRandomString(32)}-git-pr`, {
+    baseRef: "main",
+    baseRepository: githubRepository,
     headRef: branchName,
-    title: "Automated PR from galactica",
-    body: "This PR was created automatically by the galactica bot."
+    title: `Automated PR from devops pipeline - ${Date.now()}`,
+    body: "This PR was created automatically by the pegasus bot."
   });
 }
