@@ -40,18 +40,23 @@
 import * as aws from "@pulumi/aws"; // Import AWS resources from Pulumi
 import * as pulumi from "@pulumi/pulumi"; // Import Pulumi utilities
 
-import { cluster } from "./eks"; // Import the EKS cluster details
-import { eksClusterName, tags } from "./variables"; // Import cluster name and tags
+import { wildcardCertificate } from "./dns"; // Import the wildcard SSL/TLS certificate
+import { cluster, eksVpc } from "./eks"; // Import the EKS cluster details
+import { eksClusterName, environment, region, tags } from "./variables"; // Import cluster name and tags
+import { GitFileMap } from "./helpers/git-helpers"; // Import the createGitPR function
+import { settings } from "@pulumi/kubernetes";
 
 // Get the OIDC (OpenID Connect) provider ARN and URL from the EKS cluster
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
 const oidcProviderUrl = cluster.core.oidcProvider?.url || "";
 
+export const gitPrFilesEksAddons = new Array<GitFileMap>();
+
 /*
  * Create IAM Role for AWS EBS CSI Driver (Container Storage Interface)
  * This role allows the EBS CSI driver to interact with AWS services on behalf of the Kubernetes service account.
  */
-const irsaRole = new aws.iam.Role(
+const awsEbsCsiDriverIrsaRole = new aws.iam.Role(
   `${eksClusterName}-role-aws-ebs-csi-driver`, // Name of the IAM Role
   {
     name: "aws-ebs-csi-driver-sa", // IAM Role name associated with the service account
@@ -92,7 +97,7 @@ const irsaRole = new aws.iam.Role(
 new aws.iam.RolePolicyAttachment(
   `${eksClusterName}-policy-attachment-aws-ebs-csi-driver`,
   {
-    role: irsaRole.name, // Attach to the IAM Role created above
+    role: awsEbsCsiDriverIrsaRole.name, // Attach to the IAM Role created above
     policyArn: "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy", // Use predefined AWS EBS CSI policy
   }
 );
@@ -104,7 +109,7 @@ new aws.iam.RolePolicyAttachment(
 new aws.iam.RolePolicy(
   `${eksClusterName}-policy-attachment-aws-ebs-csi-driver-kms`,
   {
-    role: irsaRole.name, // Attach this policy to the EBS CSI driver role
+    role: awsEbsCsiDriverIrsaRole.name, // Attach this policy to the EBS CSI driver role
     policy: JSON.stringify({
       Version: "2012-10-17",
       Statement: [
@@ -121,6 +126,21 @@ new aws.iam.RolePolicy(
     }),
   }
 );
+
+gitPrFilesEksAddons.push({
+  fileName: "aws-ebs-csi-driver",
+  json: {
+    "aws-ebs-csi-driver": {
+      controller: {
+        serviceAccount: {
+          annotations: {
+            "eks.amazonaws.com/role-arn": awsEbsCsiDriverIrsaRole.arn,
+          }
+        }
+      }
+    }
+  }
+});
 
 /*
  * Create IAM Role for AWS Load Balancer Controller
@@ -209,3 +229,78 @@ new aws.iam.RolePolicy(
     }),
   }
 );
+
+gitPrFilesEksAddons.push({
+  fileName: "aws-load-balancer-controller",
+  json: {
+    "aws-load-balancer-controller": {
+      clusterName: environment,
+      region: region,
+      serviceAccount: {
+        annotations: {
+          "eks.amazonaws.com/role-arn": awsLoadBalancerControllerRole.arn,
+        }
+      },
+      vpcId: eksVpc.vpcId,
+    }
+  }
+});
+
+gitPrFilesEksAddons.push({
+  fileName: "amazon-cloudwatch-observability",
+  json: { 
+    "amazon-cloudwatch-observability": {
+      clusterName: environment,
+      region: region,
+    }
+  }
+});
+
+gitPrFilesEksAddons.push({
+  fileName: "ingress-nginx",
+  json: {
+    "ingress-nginx": {
+      controller: {
+        service: {
+          annotations: {
+            "alb.ingress.kubernetes.io/actions.ssl-redirect": {
+              Type: "redirect", 
+              RedirectConfig: { 
+                Protocol: "HTTPS", 
+                Port: "443", 
+                StatusCode: "HTTP_301"
+              }
+            },
+            "alb.ingress.kubernetes.io/backend-protocol": "HTTPS",
+            "alb.ingress.kubernetes.io/certificate-arn": wildcardCertificate.arn,
+            "alb.ingress.kubernetes.io/listen-ports": [
+              { "HTTP": 80 }, 
+              { "HTTPS": 443}
+            ],
+            "alb.ingress.kubernetes.io/proxy-body-size": "0",
+            "alb.ingress.kubernetes.io/scheme": "internal",
+            "alb.ingress.kubernetes.io/ssl-policy": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+            "alb.ingress.kubernetes.io/ssl-redirect": "443",
+            "alb.ingress.kubernetes.io/target-type": "ip",
+            "kubernetes.io/ingress.class": "alb",
+            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "http",
+            "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout": "3600",
+            "service.beta.kubernetes.io/aws-load-balancer-ssl-cert": wildcardCertificate.arn,
+            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",
+          }
+        }
+      }
+    }
+  }
+});
+
+gitPrFilesEksAddons.push({
+  fileName: "karpenter",
+  json: {
+    "karpenter": {
+      settings: {
+        clusterName: environment,
+      }
+    }
+  }
+});
