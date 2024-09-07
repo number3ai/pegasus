@@ -313,4 +313,10 @@ gitPrFiles.push({
   }
 });
 
-export const eksAddonsPrFiles = processGitPrFiles(gitPrFiles);
+export const eksAddonsPrFiles = awsEbsCsiDriverIrsaRole.arn.apply(() => {
+  awsLoadBalancerControllerRole.arn.apply(() => {
+    const gitFiles = processGitPrFiles(gitPrFiles);
+    return gitFiles;
+  });
+  return gitPrFiles;
+});
