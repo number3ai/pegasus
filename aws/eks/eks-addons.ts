@@ -133,8 +133,8 @@ gitPrFilesEksAddons.push({
     "aws-ebs-csi-driver": {
       controller: {
         serviceAccount: {
-          "annotations": {
-            "eks.amazonaws.com/role-arn": "test", 
+          annotations: {
+            "eks.amazonaws.com/role-arn": awsEbsCsiDriverIrsaRole.arn || "",
           }
         }
       }
