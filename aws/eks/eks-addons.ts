@@ -43,14 +43,13 @@ import * as pulumi from "@pulumi/pulumi"; // Import Pulumi utilities
 import { wildcardCertificate } from "./dns"; // Import the wildcard SSL/TLS certificate
 import { cluster, eksVpc } from "./eks"; // Import the EKS cluster details
 import { eksClusterName, environment, region, tags } from "./variables"; // Import cluster name and tags
-import { GitFileMap } from "./helpers/git-helpers"; // Import the createGitPR function
-import { settings } from "@pulumi/kubernetes";
+import { GitFileMap, processGitPrFiles } from "./helpers/git-helpers"; // Import the createGitPR function
 
 // Get the OIDC (OpenID Connect) provider ARN and URL from the EKS cluster
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
 const oidcProviderUrl = cluster.core.oidcProvider?.url || "";
 
-export const gitPrFilesEksAddons = new Array<GitFileMap>();
+export const gitPrFiles = new Array<GitFileMap>();
 
 /*
  * Create IAM Role for AWS EBS CSI Driver (Container Storage Interface)
@@ -127,19 +126,22 @@ new aws.iam.RolePolicy(
   }
 );
 
-gitPrFilesEksAddons.push({
-  fileName: "aws-ebs-csi-driver",
-  json: {
-    "aws-ebs-csi-driver": {
-      controller: {
-        serviceAccount: {
-          annotations: {
-            "eks.amazonaws.com/role-arn": awsEbsCsiDriverIrsaRole.arn,
-          }
-        }
-      }
-    }
-  }
+awsEbsCsiDriverIrsaRole.arn.apply(arn => {
+  gitPrFiles.push({
+        fileName: "aws-ebs-csi-driver",
+        json: {
+            "aws-ebs-csi-driver": {
+                controller: {
+                    serviceAccount: {
+                        annotations: {
+                            "eks.amazonaws.com/role-arn": arn,
+                        },
+                    },
+                },
+            },
+        },
+    });
+    return; // Ensure the apply callback returns nothing (void)
 });
 
 /*
@@ -230,23 +232,26 @@ new aws.iam.RolePolicy(
   }
 );
 
-gitPrFilesEksAddons.push({
-  fileName: "aws-load-balancer-controller",
-  json: {
-    "aws-load-balancer-controller": {
-      clusterName: environment,
-      region: region,
-      serviceAccount: {
-        annotations: {
-          "eks.amazonaws.com/role-arn": awsLoadBalancerControllerRole.arn,
-        }
-      },
-      vpcId: eksVpc.vpcId,
+awsLoadBalancerControllerRole.arn.apply(arn => {
+  gitPrFiles.push({
+    fileName: "aws-load-balancer-controller",
+    json: {
+      "aws-load-balancer-controller": {
+        clusterName: environment,
+        region: region,
+        serviceAccount: {
+          annotations: {
+            "eks.amazonaws.com/role-arn": arn,
+          }
+        },
+        vpcId: eksVpc.vpcId,
+      }
     }
-  }
+  });
+  return;
 });
 
-gitPrFilesEksAddons.push({
+gitPrFiles.push({
   fileName: "amazon-cloudwatch-observability",
   json: { 
     "amazon-cloudwatch-observability": {
@@ -256,45 +261,48 @@ gitPrFilesEksAddons.push({
   }
 });
 
-gitPrFilesEksAddons.push({
-  fileName: "ingress-nginx",
-  json: {
-    "ingress-nginx": {
-      controller: {
-        service: {
-          annotations: {
-            "alb.ingress.kubernetes.io/actions.ssl-redirect": {
-              Type: "redirect", 
-              RedirectConfig: { 
-                Protocol: "HTTPS", 
-                Port: "443", 
-                StatusCode: "HTTP_301"
-              }
-            },
-            "alb.ingress.kubernetes.io/backend-protocol": "HTTPS",
-            "alb.ingress.kubernetes.io/certificate-arn": wildcardCertificate.arn,
-            "alb.ingress.kubernetes.io/listen-ports": [
-              { "HTTP": 80 }, 
-              { "HTTPS": 443}
-            ],
-            "alb.ingress.kubernetes.io/proxy-body-size": "0",
-            "alb.ingress.kubernetes.io/scheme": "internal",
-            "alb.ingress.kubernetes.io/ssl-policy": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
-            "alb.ingress.kubernetes.io/ssl-redirect": "443",
-            "alb.ingress.kubernetes.io/target-type": "ip",
-            "kubernetes.io/ingress.class": "alb",
-            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "http",
-            "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout": "3600",
-            "service.beta.kubernetes.io/aws-load-balancer-ssl-cert": wildcardCertificate.arn,
-            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",
+wildcardCertificate.arn.apply(arn => {
+  gitPrFiles.push({
+    fileName: "ingress-nginx",
+    json: {
+      "ingress-nginx": {
+        controller: {
+          service: {
+            annotations: {
+              "alb.ingress.kubernetes.io/actions.ssl-redirect": {
+                Type: "redirect", 
+                RedirectConfig: { 
+                  Protocol: "HTTPS", 
+                  Port: "443", 
+                  StatusCode: "HTTP_301"
+                }
+              },
+              "alb.ingress.kubernetes.io/backend-protocol": "HTTPS",
+              "alb.ingress.kubernetes.io/certificate-arn": arn,
+              "alb.ingress.kubernetes.io/listen-ports": [
+                { HTTP: 80 }, 
+                { HTTPS: 443}
+              ],
+              "alb.ingress.kubernetes.io/proxy-body-size": "0",
+              "alb.ingress.kubernetes.io/scheme": "internal",
+              "alb.ingress.kubernetes.io/ssl-policy": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+              "alb.ingress.kubernetes.io/ssl-redirect": "443",
+              "alb.ingress.kubernetes.io/target-type": "ip",
+              "kubernetes.io/ingress.class": "alb",
+              "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "http",
+              "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout": "3600",
+              "service.beta.kubernetes.io/aws-load-balancer-ssl-cert": arn,
+              "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",
+            }
           }
         }
       }
     }
-  }
+  });
+  return;
 });
 
-gitPrFilesEksAddons.push({
+gitPrFiles.push({
   fileName: "karpenter",
   json: {
     "karpenter": {
@@ -303,4 +311,9 @@ gitPrFilesEksAddons.push({
       }
     }
   }
+});
+
+export const eksAddonsPrFiles = pulumi.all([awsEbsCsiDriverIrsaRole.arn, awsLoadBalancerControllerRole.arn]).apply(() => {
+  // Process the git PR files after both ARNs are resolved
+  return processGitPrFiles(gitPrFiles);
 });

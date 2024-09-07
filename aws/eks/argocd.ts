@@ -57,9 +57,9 @@ import {
   githubRepository,
   tags,
 } from "./variables"; // Import necessary variables
-import { GitFileMap } from "./helpers/git-helpers"; // Import the createGitPR function
+import { GitFileMap, processGitPrFiles } from "./helpers/git-helpers"; // Import the createGitPR function
 
-export const gitPrFilesArgoCd = new Array<GitFileMap>();
+export const gitPrFiles = new Array<GitFileMap>();
 
 // Construct GitHub repository URL
 const githubRepositoryUrl = `git@github.com:${githubOwner}/${githubRepository}.git`;
@@ -231,10 +231,12 @@ githubBootloaders.map(key => {
     }
   );
 
-  gitPrFilesArgoCd.push({
+  gitPrFiles.push({
     fileName: `app-of-apps-${key}`,
     json: {
       environment: environment,
     },
   });
 });
+
+export const argoCdPrFiles = processGitPrFiles(gitPrFiles);
