@@ -51,6 +51,7 @@ jobs:
       - name: Setting up Pulumi
         run: |
           cd ./aws/eks
+          npm config set fund false --location=global
           npm install
       - uses: pulumi/actions@v5
         name: Pulumi Preview
