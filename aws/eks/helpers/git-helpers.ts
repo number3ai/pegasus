@@ -46,7 +46,7 @@ export function processGitPrFiles(
 export function createGitPR(branchName: string, files: Array<GitFileMap>) {
   // Create a new branch in the repository
   const branch = new github.Branch(
-    `${hashString(branchName)}-git-branch`,
+    "git-branch",
     {
       repository: githubRepository,
       branch: branchName,
@@ -86,7 +86,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
     pulumi.all(filePromises).apply(() => {
       // Create a pull request from the branch to the main branch
       return new github.RepositoryPullRequest(
-        `${generateRandomString(32)}-git-pr`,
+        "git-pr",
         {
           baseRef: "main",
           baseRepository: githubRepository,
