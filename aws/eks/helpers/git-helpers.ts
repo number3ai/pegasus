@@ -82,6 +82,8 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
 
     // Use Pulumi's all() to wait for all file commits to complete
     pulumi.all(filePromises).apply(() => {
+      console.log(`Creating PR for branchName: ${branchName}`);
+      console.log(`Creating PR for name: ${name}`);
       // Create a pull request from the branch to the main branch
       return new github.RepositoryPullRequest(
         "git-pr",
