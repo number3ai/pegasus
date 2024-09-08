@@ -24,7 +24,7 @@ import { createGitPR, hashString } from "./helpers/git-helpers"; // Function to 
 // Resolve all Pulumi Outputs (argoCdPrFiles and eksAddonsPrFiles) before creating the PR
 pulumi.all([eksAddonsPrFiles, argoCdPrFiles]).apply(([resolvedEksAddonsPrFiles, resolvedArgoCdPrFiles]) => {
   // Now that the Output values are resolved, you can safely spread them into a single array
-  createGitPR(`automated-devops-pr-${hashString(Date.now())}`, // Unique branch name based on the current timestamp
+  createGitPR(`automated-devops-pr-${hashString(Date.now().toString())}`, // Unique branch name based on the current timestamp
               [
                   ...resolvedArgoCdPrFiles, // Spread the resolved ArgoCD PR files
                   ...resolvedEksAddonsPrFiles, // Spread the resolved EKS Add-ons PR files
