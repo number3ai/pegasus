@@ -52,6 +52,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
       branch: branchName,
     },
     {
+      ignoreChanges: ["*"],
       provider: githubProvider,
     }
   );
@@ -62,7 +63,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
 
     // Add or overwrite a file in the specified branch
     return new github.RepositoryFile(
-      `${generateRandomString(32)}-git-file`,
+      `${filePath.replace("/", "-")}-git`,
       {
         branch: branchName,
         commitAuthor: "Pulumi Bot",
@@ -74,6 +75,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         repository: githubRepository,
       },
       {
+        ignoreChanges: ["*"],
         provider: githubProvider,
       }
     ).id; // Return the resource ID to handle promises
@@ -88,10 +90,11 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         baseRef: "main",
         baseRepository: githubRepository,
         headRef: branchName,
-        title: `Automated PR from devops pipeline - ${Date.now().toString()}`,
+        title: `Automated PR for release pipeline - ${Date.now().toString()}`,
         body: "This PR was created automatically by the pegasus bot.",
       },
       {
+        ignoreChanges: ["*"],
         provider: githubProvider,
       }
     );
