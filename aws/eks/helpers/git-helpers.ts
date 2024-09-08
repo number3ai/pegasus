@@ -21,7 +21,7 @@ function generateRandomString(length: number): string {
 }
 
 // Function to hash a string using SHA-1
-function hashString(input: string): string {
+export function hashString(input: string): string {
   return createHash("sha1").update(input).digest("hex");
 }
 
