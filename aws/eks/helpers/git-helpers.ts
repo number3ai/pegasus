@@ -7,7 +7,6 @@ import { createHash, randomBytes } from "crypto";
 
 import { githubProvider } from "../providers";
 import { environment, githubRepository } from "../variables";
-import { create } from "domain";
 
 // Function to convert JSON to YAML and then encode to base64
 function jsonToYaml(jsonObject: object): string {
@@ -60,9 +59,9 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
     );
   }
 
-  // Create an array of RepositoryFile promises
-  async function createFiles() {
-    files.forEach(file => {
+  createBranch().then(() => {
+    // Create an array of RepositoryFile promises
+    const filePromises = files.map((file) => {
       const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
 
       // Add or overwrite a file in the specified branch
@@ -82,31 +81,26 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
           ignoreChanges: ["*"],
           provider: githubProvider,
         }
-      );
+      ).id; // Return the resource ID to handle promises
     });
-  }
 
-  async function createPullRequest() {
-    // Create a pull request from the branch to the main branch
-    return new github.RepositoryPullRequest(
-      `${generateRandomString(32)}-git-pr`,
-      {
-        baseRef: "main",
-        baseRepository: githubRepository,
-        headRef: branchName,
-        title: `Automated PR for release pipeline - ${Date.now().toString()}`,
-        body: "This PR was created automatically by the pegasus bot.",
-      },
-      {
-        ignoreChanges: ["*"],
-        provider: githubProvider,
-      }
-    );
-  }
-
-  createBranch().then(() => {
-    createFiles().then(() => {
-      createPullRequest();
+    // Use Pulumi's all() to wait for all file commits to complete
+    pulumi.all(filePromises).apply(() => {
+      // Create a pull request from the branch to the main branch
+      return new github.RepositoryPullRequest(
+        `${generateRandomString(32)}-git-pr`,
+        {
+          baseRef: "main",
+          baseRepository: githubRepository,
+          headRef: branchName,
+          title: `Automated PR for release pipeline - ${Date.now().toString()}`,
+          body: "This PR was created automatically by the pegasus bot.",
+        },
+        {
+          ignoreChanges: ["*"],
+          provider: githubProvider,
+        }
+      );
     });
   });
 }
