@@ -7,6 +7,7 @@ import { createHash, randomBytes } from "crypto";
 
 import { githubProvider } from "../providers";
 import { environment, githubRepository } from "../variables";
+import { create } from "domain";
 
 // Function to convert JSON to YAML and then encode to base64
 function jsonToYaml(jsonObject: object): string {
@@ -45,44 +46,47 @@ export function processGitPrFiles(
 // Create a GitHub Pull Request with a branch and a set of files
 export function createGitPR(branchName: string, files: Array<GitFileMap>) {
   // Create a new branch in the repository
-  new github.Branch(
-    `${hashString(branchName)}-git-branch`,
-    {
-      repository: githubRepository,
-      branch: branchName,
-    },
-    {
-      ignoreChanges: ["*"],
-      provider: githubProvider,
-    }
-  );
-
-  // Create an array of RepositoryFile promises
-  const filePromises = files.map((file) => {
-    const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
-
-    // Add or overwrite a file in the specified branch
-    return new github.RepositoryFile(
-      `${filePath.replace("/", "-")}-git`,
+  async function createBranch() {
+    new github.Branch(
+      `${hashString(branchName)}-git-branch`,
       {
-        branch: branchName,
-        commitAuthor: "Pulumi Bot",
-        commitEmail: "bot@pulumi.com",
-        commitMessage: `Add new file to the repository: ${filePath}`,
-        content: jsonToYaml(file.json),
-        file: filePath,
-        overwriteOnCreate: true,
         repository: githubRepository,
+        branch: branchName,
       },
       {
         ignoreChanges: ["*"],
         provider: githubProvider,
       }
-    ).id; // Return the resource ID to handle promises
-  });
+    );
+  }
 
-  // Use Pulumi's all() to wait for all file commits to complete
-  pulumi.all(filePromises).apply(() => {
+  // Create an array of RepositoryFile promises
+  async function createFiles() {
+    files.forEach(file => {
+      const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
+
+      // Add or overwrite a file in the specified branch
+      return new github.RepositoryFile(
+        `${filePath.replace("/", "-")}-git`,
+        {
+          branch: branchName,
+          commitAuthor: "Pulumi Bot",
+          commitEmail: "bot@pulumi.com",
+          commitMessage: `Add new file to the repository: ${filePath}`,
+          content: jsonToYaml(file.json),
+          file: filePath,
+          overwriteOnCreate: true,
+          repository: githubRepository,
+        },
+        {
+          ignoreChanges: ["*"],
+          provider: githubProvider,
+        }
+      );
+    });
+  }
+
+  async function createPullRequest() {
     // Create a pull request from the branch to the main branch
     return new github.RepositoryPullRequest(
       `${generateRandomString(32)}-git-pr`,
@@ -98,5 +102,11 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         provider: githubProvider,
       }
     );
+  }
+
+  createBranch().then(() => {
+    createFiles().then(() => {
+      createPullRequest();
+    });
   });
 }
