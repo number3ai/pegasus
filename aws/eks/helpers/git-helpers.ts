@@ -45,7 +45,7 @@ export function processGitPrFiles(
 // Create a GitHub Pull Request with a branch and a set of files
 export function createGitPR(branchName: string, files: Array<GitFileMap>) {
   // Create a new branch in the repository
-  const branch = new github.Branch(
+  new github.Branch(
     "git-branch",
     {
       repository: githubRepository,
@@ -55,9 +55,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
       ignoreChanges: ["*"],
       provider: githubProvider,
     }
-  );
-
-  branch.branch.apply(() => {
+  ).branch.apply((name) => {
     // Create an array of RepositoryFile promises
     const filePromises = files.map((file) => {
       const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
@@ -66,7 +64,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
       return new github.RepositoryFile(
         `${filePath.replace("/", "-")}-git`,
         {
-          branch: branchName,
+          branch: name,
           commitAuthor: "Pulumi Bot",
           commitEmail: "bot@pulumi.com",
           commitMessage: `Add new file to the repository: ${filePath}`,
@@ -90,7 +88,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         {
           baseRef: "main",
           baseRepository: githubRepository,
-          headRef: branchName,
+          headRef: name,
           title: `Automated PR for release pipeline - ${Date.now().toString()}`,
           body: "This PR was created automatically by the pegasus bot.",
         },
