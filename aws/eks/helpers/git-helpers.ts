@@ -45,21 +45,19 @@ export function processGitPrFiles(
 // Create a GitHub Pull Request with a branch and a set of files
 export function createGitPR(branchName: string, files: Array<GitFileMap>) {
   // Create a new branch in the repository
-  async function createBranch() {
-    new github.Branch(
-      `${hashString(branchName)}-git-branch`,
-      {
-        repository: githubRepository,
-        branch: branchName,
-      },
-      {
-        ignoreChanges: ["*"],
-        provider: githubProvider,
-      }
-    );
-  }
+  const branch = new github.Branch(
+    `${hashString(branchName)}-git-branch`,
+    {
+      repository: githubRepository,
+      branch: branchName,
+    },
+    {
+      ignoreChanges: ["*"],
+      provider: githubProvider,
+    }
+  );
 
-  createBranch().then(() => {
+  branch.branch.apply(() => {
     // Create an array of RepositoryFile promises
     const filePromises = files.map((file) => {
       const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
