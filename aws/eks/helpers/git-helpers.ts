@@ -45,7 +45,7 @@ export function processGitPrFiles(
 // Create a GitHub Pull Request with a branch and a set of files
 export function createGitPR(branchName: string, files: Array<GitFileMap>) {
   // Create a new branch in the repository
-  new github.Branch(
+  const branch = new github.Branch(
     "git-branch",
     {
       repository: githubRepository,
@@ -55,50 +55,50 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
       ignoreChanges: ["*"],
       provider: githubProvider,
     }
-  ).branch.apply((name) => {
-    // Create an array of RepositoryFile promises
-    const filePromises = files.map((file) => {
-      const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
+  );
 
-      // Add or overwrite a file in the specified branch
-      return new github.RepositoryFile(
-        `${filePath.replace("/", "-")}-git`,
-        {
-          branch: name,
-          commitAuthor: "Pulumi Bot",
-          commitEmail: "bot@pulumi.com",
-          commitMessage: `Add new file to the repository: ${filePath}`,
-          content: jsonToYaml(file.json),
-          file: filePath,
-          overwriteOnCreate: true,
-          repository: githubRepository,
-        },
-        {
-          ignoreChanges: ["*"],
-          provider: githubProvider,
-        }
-      ).id; // Return the resource ID to handle promises
-    });
+  // Create an array of RepositoryFile promises
+  const filePromises = files.map((file) => {
+    const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
 
-    // Use Pulumi's all() to wait for all file commits to complete
-    pulumi.all(filePromises).apply(() => {
-      console.log(`Creating PR for branchName: ${branchName}`);
-      console.log(`Creating PR for name: ${name}`);
-      // Create a pull request from the branch to the main branch
-      return new github.RepositoryPullRequest(
-        "git-pr",
-        {
-          baseRef: "main",
-          baseRepository: githubRepository,
-          headRef: name,
-          title: `Automated PR for release pipeline - ${Date.now().toString()}`,
-          body: "This PR was created automatically by the pegasus bot.",
-        },
-        {
-          ignoreChanges: ["*"],
-          provider: githubProvider,
-        }
-      );
-    });
+    // Add or overwrite a file in the specified branch
+    return new github.RepositoryFile(
+      `${filePath.replace("/", "-")}-git`,
+      {
+        branch: branch.branch,
+        commitAuthor: "Pulumi Bot",
+        commitEmail: "bot@pulumi.com",
+        commitMessage: `Add new file to the repository: ${filePath}`,
+        content: jsonToYaml(file.json),
+        file: filePath,
+        overwriteOnCreate: true,
+        repository: githubRepository,
+      },
+      {
+        ignoreChanges: ["*"],
+        provider: githubProvider,
+      }
+    ).id; // Return the resource ID to handle promises
+  });
+
+  // Use Pulumi's all() to wait for all file commits to complete
+  pulumi.all(filePromises).apply(() => {
+    console.log(`Creating PR for branchName: ${branchName}`);
+    console.log(`Creating PR for name: ${branch.branch}`);
+    // Create a pull request from the branch to the main branch
+    return new github.RepositoryPullRequest(
+      "git-pr",
+      {
+        baseRef: "main",
+        baseRepository: githubRepository,
+        headRef: branch.branch,
+        title: `Automated PR for release pipeline - ${Date.now().toString()}`,
+        body: "This PR was created automatically by the pegasus bot.",
+      },
+      {
+        ignoreChanges: ["*"],
+        provider: githubProvider,
+      }
+    );
   });
 }
