@@ -52,6 +52,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
       branch: branchName,
     },
     {
+      ignoreChanges: ["*"],
       provider: githubProvider,
     }
   );
@@ -74,6 +75,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         repository: githubRepository,
       },
       {
+        ignoreChanges: ["*"],
         provider: githubProvider,
       }
     ).id; // Return the resource ID to handle promises
@@ -92,6 +94,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         body: "This PR was created automatically by the pegasus bot.",
       },
       {
+        ignoreChanges: ["*"],
         provider: githubProvider,
       }
     );
