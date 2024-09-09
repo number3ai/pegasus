@@ -3,8 +3,8 @@ on:
   push:
     paths:
       - aws/eks/**
-    # branches:
-    #   - main
+    branches:
+      - main
   pull_request:
     paths:
       - aws/eks/**
