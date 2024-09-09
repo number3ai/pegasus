@@ -57,7 +57,7 @@ import {
   githubRepository,
   tags,
 } from "./variables"; // Import necessary variables
-import { GitFileMap, processGitPrFiles } from "./helpers/git-helpers"; // Import the createGitPR function
+import { GitFileMap, processGitPrFiles } from "./helpers/git"; // Import the createGitPR function
 
 export const gitPrFiles = new Array<GitFileMap>();
 

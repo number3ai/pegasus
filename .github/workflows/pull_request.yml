@@ -1,8 +1,8 @@
 name: Pulumi Preview
 on:
-  # pull_request:
-  #   paths:
-  #     - aws/eks/**
+  pull_request:
+    paths:
+      - aws/eks/**
   workflow_dispatch:
 
 jobs:

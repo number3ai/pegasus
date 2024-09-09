@@ -43,7 +43,7 @@ import * as pulumi from "@pulumi/pulumi"; // Import Pulumi utilities
 import { wildcardCertificate } from "./dns"; // Import the wildcard SSL/TLS certificate
 import { cluster, eksVpc } from "./eks"; // Import the EKS cluster details
 import { eksClusterName, environment, region, tags } from "./variables"; // Import cluster name and tags
-import { GitFileMap, processGitPrFiles } from "./helpers/git-helpers"; // Import the createGitPR function
+import { GitFileMap, processGitPrFiles } from "./helpers/git"; // Import the createGitPR function
 
 // Get the OIDC (OpenID Connect) provider ARN and URL from the EKS cluster
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";
@@ -276,20 +276,20 @@ wildcardCertificate.arn.apply((arn) => {
         controller: {
           service: {
             annotations: {
-              "alb.ingress.kubernetes.io/actions.ssl-redirect": {
+              "alb.ingress.kubernetes.io/actions.ssl-redirect": JSON.stringify({
                 Type: "redirect",
                 RedirectConfig: {
                   Protocol: "HTTPS",
                   Port: "443",
                   StatusCode: "HTTP_301",
                 },
-              },
+              }),
               "alb.ingress.kubernetes.io/backend-protocol": "HTTPS",
               "alb.ingress.kubernetes.io/certificate-arn": arn,
-              "alb.ingress.kubernetes.io/listen-ports": [
+              "alb.ingress.kubernetes.io/listen-ports": JSON.stringify([
                 { HTTP: 80 },
                 { HTTPS: 443 },
-              ],
+              ]),
               "alb.ingress.kubernetes.io/proxy-body-size": "0",
               "alb.ingress.kubernetes.io/scheme": "internal",
               "alb.ingress.kubernetes.io/ssl-policy":
