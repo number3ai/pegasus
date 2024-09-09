@@ -19,7 +19,7 @@ import * as pulumi from "@pulumi/pulumi"; // Pulumi library for managing cloud r
 
 import { argoCdPrFiles } from "./argocd"; // ArgoCD PR files to be included in the PR
 import { eksAddonsPrFiles } from "./eks-addons"; // EKS Add-ons PR files to be included in the PR
-import { createGitPR } from "./helpers/git-helpers"; // Function to create the GitHub PR
+import { createGitPR } from "./helpers/git"; // Function to create the GitHub PR
 
 // Resolve all Pulumi Outputs (argoCdPrFiles and eksAddonsPrFiles) before creating the PR
 pulumi.all([eksAddonsPrFiles, argoCdPrFiles]).apply(([resolvedEksAddonsPrFiles, resolvedArgoCdPrFiles]) => {

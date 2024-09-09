@@ -43,7 +43,7 @@ import * as pulumi from "@pulumi/pulumi"; // Import Pulumi utilities
 import { wildcardCertificate } from "./dns"; // Import the wildcard SSL/TLS certificate
 import { cluster, eksVpc } from "./eks"; // Import the EKS cluster details
 import { eksClusterName, environment, region, tags } from "./variables"; // Import cluster name and tags
-import { GitFileMap, processGitPrFiles } from "./helpers/git-helpers"; // Import the createGitPR function
+import { GitFileMap, processGitPrFiles } from "./helpers/git"; // Import the createGitPR function
 
 // Get the OIDC (OpenID Connect) provider ARN and URL from the EKS cluster
 const oidcProviderArn = cluster.core.oidcProvider?.arn || "";

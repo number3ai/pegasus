@@ -1,29 +1,9 @@
 import * as github from "@pulumi/github";
 import * as pulumi from "@pulumi/pulumi";
-import * as yaml from "js-yaml";
-
-import { Buffer } from "buffer";
-import { createHash, randomBytes } from "crypto";
 
 import { githubProvider } from "../providers";
 import { environment, githubRepository } from "../variables";
-
-// Function to convert JSON to YAML and then encode to base64
-function jsonToYaml(jsonObject: object): string {
-  return Buffer.from(yaml.dump(jsonObject)).toString("ascii");
-}
-
-// Function to generate a random string of a specified length
-function generateRandomString(length: number): string {
-  return randomBytes(Math.ceil(length / 2))
-    .toString("hex")
-    .slice(0, length);
-}
-
-// Function to hash a string using SHA-1
-export function hashString(input: string): string {
-  return createHash("sha1").update(input).digest("hex");
-}
+import { currentStack, jsonToYaml } from "./utils";
 
 // Define a type representing a file map with a file name and a JSON object
 export type GitFileMap = {
@@ -32,9 +12,7 @@ export type GitFileMap = {
 };
 
 // Process an array of Git pull request files
-export function processGitPrFiles(
-  gitPrFiles: Array<GitFileMap>
-): Array<GitFileMap> {
+export function processGitPrFiles(gitPrFiles: Array<GitFileMap>): Array<GitFileMap> {
   // Use Pulumi's all() method to ensure all promises are resolved (if any), then return the files
   pulumi.all(gitPrFiles).apply(() => {
     return gitPrFiles;
@@ -43,7 +21,7 @@ export function processGitPrFiles(
 }
 
 // Create a GitHub Pull Request with a branch and a set of files
-export function createGitPR(branchName: string, files: Array<GitFileMap>) {
+export async function createGitPR(branchName: string, files: Array<GitFileMap>) {
   // Create a new branch in the repository
   const branch = new github.Branch(
     "git-branch",
@@ -52,9 +30,11 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
       branch: branchName,
     },
     {
+      deleteBeforeReplace: true, // Ensure the branch is removed from the state file after creation
       provider: githubProvider,
     }
   );
+
 
   // Create an array of RepositoryFile promises
   const filePromises = files.map((file) => {
@@ -73,7 +53,8 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         overwriteOnCreate: true,
         repository: githubRepository,
       },
-      {
+      {      
+        deleteBeforeReplace: true, // Ensure the file is removed from the state file after creation
         provider: githubProvider,
       }
     ).id; // Return the resource ID to handle promises
@@ -92,6 +73,7 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         body: "This PR was created automatically by the pegasus bot.",
       },
       {
+        deleteBeforeReplace: true, // Ensure the pr is removed from the state file after creation
         provider: githubProvider,
       }
     );
