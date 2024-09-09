@@ -52,7 +52,6 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
       branch: branchName,
     },
     {
-      ignoreChanges: ["*"],
       provider: githubProvider,
     }
   );
@@ -75,7 +74,6 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         repository: githubRepository,
       },
       {
-        ignoreChanges: ["*"],
         provider: githubProvider,
       }
     ).id; // Return the resource ID to handle promises
@@ -83,8 +81,6 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
 
   // Use Pulumi's all() to wait for all file commits to complete
   pulumi.all(filePromises).apply(() => {
-    console.log(`Creating PR for branchName: ${branchName}`);
-    console.log(`Creating PR for name: ${branch.branch}`);
     // Create a pull request from the branch to the main branch
     return new github.RepositoryPullRequest(
       "git-pr",
@@ -92,11 +88,10 @@ export function createGitPR(branchName: string, files: Array<GitFileMap>) {
         baseRef: "main",
         baseRepository: githubRepository,
         headRef: branch.branch,
-        title: `Automated PR for release pipeline - ${Date.now().toString()}`,
+        title: "Automated PR for release pipeline",
         body: "This PR was created automatically by the pegasus bot.",
       },
       {
-        ignoreChanges: ["*"],
         provider: githubProvider,
       }
     );
