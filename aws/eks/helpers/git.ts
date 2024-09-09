@@ -3,7 +3,7 @@ import * as pulumi from "@pulumi/pulumi";
 
 import { githubProvider } from "../providers";
 import { environment, githubRepository } from "../variables";
-import { currentStack, jsonToYaml } from "./utils";
+import { jsonToYaml } from "./utils";
 
 // Define a type representing a file map with a file name and a JSON object
 export type GitFileMap = {
