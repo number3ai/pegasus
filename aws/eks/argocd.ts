@@ -193,6 +193,9 @@ githubBootloaders.map((key) => {
               environment: environment, // Add environment-specific labels
             },
             project: "default", // Default ArgoCD project
+            finalizers: [
+              "resources-finalizer.argocd.argoproj.io", // ArgoCD finalizer
+            ],
             sources: [
               {
                 repoURL: githubRepositoryUrl, // GitHub repo for application code
