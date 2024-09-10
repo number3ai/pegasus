@@ -201,7 +201,6 @@ githubBootloaders.map((key) => {
                 helm: {
                   ignoreMissingValueFiles: true, // Ignore missing Helm values files
                   valueFiles: [
-                    "values.yaml", // Base values file
                     `values-${key}.yaml`, // Environment-specific values file
                     `/releases/${environment}/app-of-apps-${key}.yaml`, // Environment-specific values file
                   ],
