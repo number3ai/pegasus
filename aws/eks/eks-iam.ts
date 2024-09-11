@@ -35,12 +35,7 @@
 
 import * as aws from "@pulumi/aws"; // Import AWS resources from Pulumi
 
-import { region } from "./variables"; // Import the AWS region from the variables file
-
-const accountId = aws.getCallerIdentity({}).then(identity => {
-  console.log(identity.accountId); // This will log the actual account ID
-  return identity.accountId;
-});
+import { accountId, region } from "./variables"; // Import the AWS region from the variables file
 
 // Define the policy document
 const ec2CreateVolumePolicyDocument = {
