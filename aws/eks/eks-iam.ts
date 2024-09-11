@@ -43,8 +43,11 @@ const ec2CreateVolumePolicyDocument = {
   Statement: [
     {
       Effect: "Allow",
-      Action: "ec2:CreateVolume",
-      Resource: `arn:aws:ec2:${region}:${accountId}:volume/*`
+      Actions: [
+        "ec2:CreateTags",
+        "ec2:CreateVolume",
+      ],
+      Resource: "*"
     }
   ]
 };
@@ -52,7 +55,7 @@ const ec2CreateVolumePolicyDocument = {
 // Create the IAM policy
 const ec2CreateVolumePolicy = new aws.iam.Policy("ec2CreateVolumePolicy", {
   description: "Policy to allow EC2 CreateVolume action",
-  name: "EC2CreateVolumePolicy",
+  name: "EC2NodeVolumePolicy",
   policy: JSON.stringify(ec2CreateVolumePolicyDocument)
 });
 
@@ -63,7 +66,7 @@ const managedPolicyArns: string[] = [
   "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy", // Provides permissions to manage Elastic Network Interfaces (ENIs)
   "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly", // Grants read-only access to ECR (Elastic Container Registry) for pulling container images
   "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy", // Allows nodes to push metrics and logs to CloudWatch
-  `arn:aws:iam::${accountId}:policy/EC2CreateVolumePolicy` // Allows nodes to create EBS volumes
+  `arn:aws:iam::${accountId}:policy/EC2NodeVolumePolicy` // Allows nodes to create EBS volumes
 ];
 
 // Creates a role and attaches the EKS worker node IAM managed policies
