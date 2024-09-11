@@ -44,8 +44,11 @@ const ec2CreateVolumePolicyDocument = {
     {
       Effect: "Allow",
       Action: [
-        "ec2:CreateTags",
-        "ec2:CreateVolume",
+        "ec2:AttachVolume", // Needed by CSI driver to attach volumes
+        "ec2:CreateTags", // Needed by Prometheus
+        "ec2:CreateVolume", // Needed by Prometheus to create volumes
+        "ec2:DetachVolume", // Needed by CSI driver to detach volumes
+        "ec2:DeleteVolume", // Needed by CSI driver to delete volumes
       ],
       Resource: "*"
     }
