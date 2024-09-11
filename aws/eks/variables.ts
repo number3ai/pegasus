@@ -75,7 +75,7 @@ export const desiredSize = 4;
 export const instanceType = "t3.large";
 
 // ArgoCD Configuration
-export const argoCdAppsVersion = "2.0.0";
+export const argoCdAppsVersion = "2.0.1";
 export const argoCdVersion = "7.3.9";
 
 // GitHub Configuration
