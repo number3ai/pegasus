@@ -43,7 +43,7 @@ const ec2CreateVolumePolicyDocument = {
   Statement: [
     {
       Effect: "Allow",
-      Actions: [
+      Action: [
         "ec2:CreateTags",
         "ec2:CreateVolume",
       ],
