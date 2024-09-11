@@ -137,7 +137,10 @@ eks.createManagedNodeGroup(`${eksClusterName}-node-group`, {
     maxSize: maxSize, // Maximum number of worker nodes
     minSize: minSize, // Minimum number of worker nodes
   },
-  tags: tags, // Attach tags to the node group
+  tags: { 
+    ...tags, // Attach default tags to the node group
+    ...{ "karpenter.sh/discovery": eksClusterName }, // Add a custom tag for Karpenter discovery
+  }
 });
 
 // Export the kubeconfig for the EKS cluster.
