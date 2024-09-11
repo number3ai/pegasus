@@ -37,11 +37,10 @@ import * as aws from "@pulumi/aws"; // Import AWS resources from Pulumi
 
 import { region } from "./variables"; // Import the AWS region from the variables file
 
-async function getAccountId() {
-  const identity = await aws.getCallerIdentity({});
-  const accountId = identity.accountId;
-  return accountId;
-}
+const accountId = aws.getCallerIdentity({}).then(identity => {
+  console.log(identity.accountId); // This will log the actual account ID
+  return identity.accountId;
+});
 
 // Define the policy document
 const ec2CreateVolumePolicyDocument = {
@@ -50,7 +49,7 @@ const ec2CreateVolumePolicyDocument = {
     {
       Effect: "Allow",
       Action: "ec2:CreateVolume",
-      Resource: `arn:aws:ec2:${region}:${getAccountId()}:volume/*`
+      Resource: `arn:aws:ec2:${region}:${accountId}:volume/*`
     }
   ]
 };
@@ -69,7 +68,7 @@ const managedPolicyArns: string[] = [
   "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy", // Provides permissions to manage Elastic Network Interfaces (ENIs)
   "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly", // Grants read-only access to ECR (Elastic Container Registry) for pulling container images
   "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy", // Allows nodes to push metrics and logs to CloudWatch
-  `arn:aws:iam:${getAccountId()}:policy/EC2CreateVolumePolicy` // Allows nodes to create EBS volumes
+  `arn:aws:iam:${accountId}:policy/EC2CreateVolumePolicy` // Allows nodes to create EBS volumes
 ];
 
 // Creates a role and attaches the EKS worker node IAM managed policies
