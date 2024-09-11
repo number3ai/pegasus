@@ -196,7 +196,7 @@ githubBootloaders.map((key) => {
             finalizers: [
               "resources-finalizer.argocd.argoproj.io", // ArgoCD finalizer
             ],
-            sources: [
+            source: [
               {
                 repoURL: githubRepositoryUrl, // GitHub repo for application code
                 path: githubBootloaderPath, // Path in the GitHub repo
@@ -205,7 +205,8 @@ githubBootloaders.map((key) => {
                   ignoreMissingValueFiles: true, // Ignore missing Helm values files
                   valueFiles: [
                     `values-${key}.yaml`, // Environment-specific values file
-                    `/releases/${environment}/app-of-apps-${key}.yaml`, // Environment-specific values file
+                    `/releases/${environment}/app-of-apps-${key}.generated.yaml`, // Environment-specific values file
+                    `/releases/${environment}/app-of-apps-${key}.yaml` // Environment-specific values file
                   ],
                 },
               },
