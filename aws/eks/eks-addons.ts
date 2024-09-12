@@ -42,7 +42,7 @@ import * as pulumi from "@pulumi/pulumi"; // Import Pulumi utilities
 
 import { wildcardCertificate } from "./dns"; // Import the wildcard SSL/TLS certificate
 import { cluster, eksVpc } from "./eks"; // Import the EKS cluster details
-import { eksClusterName, environment, region, tags } from "./variables"; // Import cluster name and tags
+import { accountId, eksClusterName, environment, region, tags } from "./variables"; // Import cluster name and tags
 import { GitFileMap, processGitPrFiles } from "./helpers/git"; // Import the createGitPR function
 
 // Get the OIDC (OpenID Connect) provider ARN and URL from the EKS cluster
@@ -250,6 +250,92 @@ awsLoadBalancerControllerRole.arn.apply((arn) => {
   return;
 });
 
+/* Karpenter Configuration */
+export const karpenterIrsaRole = new aws.iam.Role(
+  `${eksClusterName}-role-karpenter`, // Name of the IAM Role
+  {
+    name: "karpenter-sa", // IAM Role name associated with the service account
+    assumeRolePolicy: pulumi
+      .all([oidcProviderArn, oidcProviderUrl])
+      .apply(([arn, url]) =>
+        JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Action: "sts:AssumeRoleWithWebIdentity", // Allow the service account to assume this role
+              Effect: "Allow",
+              Principal: {
+                Federated: arn, // Use the OIDC provider ARN
+              },
+              Condition: {
+                StringEquals: {
+                  [`${url}:aud`]: "sts.amazonaws.com", // Ensure the audience matches
+                  [`${url}:sub`]:
+                    "system:serviceaccount:kube-system:karpenter-sa", // Service account subject
+                },
+              },
+            },
+          ],
+        })
+      ),
+    tags: tags, // Apply the tags to this resource
+  },
+  {
+    dependsOn: [cluster], // Ensure this resource is created after the EKS cluster is available
+  }
+);
+
+new aws.iam.RolePolicy(
+  `${eksClusterName}-policy-attachment-karpenter`,
+  {
+    role: karpenterIrsaRole.name, // Attach this policy to the EBS CSI driver role
+    policy: JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Effect: "Allow",
+          Action: [
+            "ec2:DescribeAvailabilityZones",
+            "ec2:DescribeImages",
+            "ec2:DescribeInstances",
+            "ec2:DescribeInstanceTypeOfferings",
+            "ec2:DescribeInstanceTypes",
+            "ec2:DescribeLaunchTemplates",
+            "ec2:DescribeSecurityGroups",
+            "ec2:DescribeSpotPriceHistory",
+            "ec2:DescribeSubnets",
+            "ec2:TerminateInstances",
+            "eks:DescribeCluster",
+            "iam:AddRoleToInstanceProfile",
+            "iam:CreateInstanceProfile",
+            "iam:DeleteInstanceProfile",
+            "iam:GetInstanceProfile",
+            "iam:PassRole",
+            "iam:RemoveRoleFromInstanceProfile",
+            "iam:TagInstanceProfile",
+            "pricing:GetProducts",
+            "ssm:GetParameter",
+          ],
+          Resource: "*", // Apply this permission to all KMS resources
+        },{
+          Effect: "Allow",
+          Action: [
+            "ec2:CreateFleet",
+            "ec2:CreateLaunchTemplate",
+            "ec2:CreateTags",
+            "ec2:DeleteLaunchTemplate",
+            "ec2:RunInstances"
+          ],
+          Resource: [
+            `arn:aws:ec2:${region}:${accountId}:*`,
+            `arn:aws:ec2:${region}::image/*`,
+          ]
+        },
+      ],
+    }),
+  }
+);
+
 /*
  * Define configurations for Amazon CloudWatch observability
  * This includes settings related to CloudWatch monitoring and logging.
@@ -316,15 +402,35 @@ wildcardCertificate.arn.apply((arn) => {
  * Define Karpenter configuration settings
  * This configuration is for automatic Kubernetes cluster scaling using Karpenter.
  */
-gitPrFiles.push({
-  fileName: "karpenter",
-  json: {
-    karpenter: {
-      settings: {
-        clusterName: environment,
+karpenterIrsaRole.arn.apply((arn) => {
+  gitPrFiles.push({
+    fileName: "karpenter",
+    json: {
+      karpenter: {
+        settings: {
+          clusterName: environment,
+        },
+        serviceAccount: {
+          name: "karpenter-sa",
+          annotations: {
+            "eks.amazonaws.com/role-arn": arn
+          }
+        },
+        defaultProvisioner: {
+          requirements: [
+            {
+              key: "node.kubernetes.io/instance-type",
+              operator: "In",
+              values: [
+                "t3.medium", 
+                "t3.large"
+              ],
+            },
+          ]
+        }
       },
     },
-  },
+  });
 });
 
 export const eksAddonsPrFiles = pulumi
