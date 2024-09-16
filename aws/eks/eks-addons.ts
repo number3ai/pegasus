@@ -308,10 +308,10 @@ new aws.iam.RolePolicy(
 
 /* Grafana Configuration */
 /*
- * ArgoCD Admin Password Setup
- * Generate a random password for the ArgoCD admin user.
+ * Grafana Admin Password Setup
+ * Generate a random password for the Grafana admin user.
  */
-const argoAdminPassword = new random.RandomPassword("argocd-admin-password", {
+const grafanaAdminPassword = new random.RandomPassword("grafana-admin-password", {
   length: 24, // Password length
   special: false, // Exclude special characters
   lower: true,
@@ -338,7 +338,7 @@ new aws.secretsmanager.SecretVersion(
   "grafana-secret-version",
   {
     secretId: grafanaAdminSecret.id, // Secret ID reference
-    secretString: argoAdminPassword.result.apply(
+    secretString: grafanaAdminPassword.result.apply(
       (password: any) => JSON.stringify({ password, username: "admin" }) // Store password and admin username
     ),
   },
