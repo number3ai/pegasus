@@ -381,25 +381,13 @@ export const grafanaIrsaRole = new aws.iam.Role(
   }
 );
 
-new aws.iam.RolePolicy(
+new aws.iam.RolePolicyAttachment(
   `${eksClusterName}-policy-attachment-grafana`,
   {
-    role: grafanaIrsaRole.name, // Attach this policy to the EBS CSI driver role
-    policy: JSON.stringify({
-      Version: "2012-10-17",
-      Statement: [
-        {
-          Effect: "Allow",
-          Action: [
-            "",
-          ],
-          Resource: "*", // Apply this permission to all resources
-        },
-      ],
-    }),
+    role: grafanaIrsaRole.name, // Attach to the IAM Role created above
+    policyArn: "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess", // Use predefined Cloudwatch Policy
   }
 );
-
 
 /* Dynamic Helm Values */
 export const eksAddonsPrFiles = pulumi
