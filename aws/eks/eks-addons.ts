@@ -39,9 +39,11 @@
 
 import * as aws from "@pulumi/aws"; // Import AWS resources from Pulumi
 import * as pulumi from "@pulumi/pulumi"; // Import Pulumi utilities
+import * as random from "@pulumi/random"; // Import the random password generator
 
 import { wildcardCertificate } from "./dns"; // Import the wildcard SSL/TLS certificate
 import { cluster, eksVpc } from "./eks"; // Import the EKS cluster details
+import { awsProvider } from "./providers"; // Import the AWS provider
 import { accountId, eksClusterName, environment, region, tags } from "./variables"; // Import cluster name and tags
 import { GitFileMap, processGitPrFiles } from "./helpers/git"; // Import the createGitPR function
 
@@ -304,10 +306,107 @@ new aws.iam.RolePolicy(
   }
 );
 
+/* Grafana Configuration */
+/*
+ * ArgoCD Admin Password Setup
+ * Generate a random password for the ArgoCD admin user.
+ */
+const argoAdminPassword = new random.RandomPassword("argocd-admin-password", {
+  length: 24, // Password length
+  special: false, // Exclude special characters
+  lower: true,
+  upper: true,
+  number: true,
+});
+
+// Store ArgoCD admin password in AWS Secrets Manager for secure access
+const grafanaAdminSecret = new aws.secretsmanager.Secret(
+  "grafana-secret",
+  {
+    name: `${eksClusterName}/grafana/credentials`, // Secret name in Secrets Manager
+    description: "Grafana admin credentials", // Secret description
+    recoveryWindowInDays: 0, // No recovery window for secret deletion
+    tags: tags, // Add predefined tags to the secret
+  },
+  {
+    provider: awsProvider, // Use AWS provider
+  }
+);
+
+// Create a new version of the secret with the ArgoCD credentials
+new aws.secretsmanager.SecretVersion(
+  "grafana-secret-version",
+  {
+    secretId: grafanaAdminSecret.id, // Secret ID reference
+    secretString: argoAdminPassword.result.apply(
+      (password: any) => JSON.stringify({ password, username: "admin" }) // Store password and admin username
+    ),
+  },
+  {
+    provider: awsProvider, // AWS provider configuration
+  }
+);
+
+export const grafanaIrsaRole = new aws.iam.Role(
+  `${eksClusterName}-role-grafana`, // Name of the IAM Role
+  {
+    name: "grafana-sa", // IAM Role name associated with the service account
+    assumeRolePolicy: pulumi
+      .all([oidcProviderArn, oidcProviderUrl])
+      .apply(([arn, url]) =>
+        JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Action: "sts:AssumeRoleWithWebIdentity", // Allow the service account to assume this role
+              Effect: "Allow",
+              Principal: {
+                Federated: arn, // Use the OIDC provider ARN
+              },
+              Condition: {
+                StringEquals: {
+                  [`${url}:aud`]: "sts.amazonaws.com", // Ensure the audience matches
+                  [`${url}:sub`]:
+                    "system:serviceaccount:monitoring:grafana-sa", // Service account subject
+                },
+              },
+            },
+          ],
+        })
+      ),
+    tags: tags, // Apply the tags to this resource
+  },
+  {
+    dependsOn: [cluster], // Ensure this resource is created after the EKS cluster is available
+  }
+);
+
+new aws.iam.RolePolicy(
+  `${eksClusterName}-policy-attachment-grafana`,
+  {
+    role: grafanaIrsaRole.name, // Attach this policy to the EBS CSI driver role
+    policy: JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Effect: "Allow",
+          Action: [
+            "",
+          ],
+          Resource: "*", // Apply this permission to all resources
+        },
+      ],
+    }),
+  }
+);
+
+
+/* Dynamic Helm Values */
 export const eksAddonsPrFiles = pulumi
   .all([
     awsEbsCsiDriverIrsaRole.arn, 
-    awsLoadBalancerControllerRole.arn, 
+    awsLoadBalancerControllerRole.arn,
+    grafanaIrsaRole.arn, 
     karpenterIrsaRole.arn,
     wildcardCertificate.arn,
   ])
@@ -425,6 +524,51 @@ export const eksAddonsPrFiles = pulumi
             },
           },
           vpcId: eksVpc.vpcId,
+        },
+      },
+    });
+    
+    /* Grafana Configuration */
+    gitPrFiles.push({
+      fileName: "grafana",
+      json: {
+        grafana: {
+          datasources: {
+            "datasources.yaml": {
+              apiVersion: 1,
+              datasources: [
+                {
+                  name: "Prometheus",
+                  type: "prometheus",
+                  access: "proxy",
+                  url: "http://prometheus.monitoring.svc.cluster.local",
+                  isDefault: true,
+                  editable: false,
+                },
+                {
+                  name: "CloudWatch",
+                  type: "cloudwatch",
+                  access: "proxy",
+                  uid: "cloudwatch",
+                  editable: false,
+                  jsonData: {
+                    authType: "default",
+                    defaultRegion: `${region}`,
+                  },
+                },
+              ],
+            },
+          },
+          serviceAccount: {
+            labels: {
+              "eks.amazonaws.com/role-arn": grafanaIrsaRole.arn,
+            },
+          },
+          admin: {
+            existingSecret: grafanaAdminSecret.name,
+            userKey: "user",
+            passwordKey: "password",
+          },
         },
       },
     });
