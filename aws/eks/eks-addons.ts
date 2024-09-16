@@ -127,20 +127,7 @@ new aws.iam.RolePolicy(
 );
 
 awsEbsCsiDriverIrsaRole.arn.apply((arn) => {
-  gitPrFiles.push({
-    fileName: "aws-ebs-csi-driver",
-    json: {
-      "aws-ebs-csi-driver": {
-        controller: {
-          serviceAccount: {
-            annotations: {
-              "eks.amazonaws.com/role-arn": arn,
-            },
-          },
-        },
-      },
-    },
-  });
+  
   return; // Ensure the apply callback returns nothing (void)
 });
 
@@ -231,25 +218,6 @@ new aws.iam.RolePolicy(
   }
 );
 
-awsLoadBalancerControllerRole.arn.apply((arn) => {
-  gitPrFiles.push({
-    fileName: "aws-load-balancer-controller",
-    json: {
-      "aws-load-balancer-controller": {
-        clusterName: environment,
-        region: region,
-        serviceAccount: {
-          annotations: {
-            "eks.amazonaws.com/role-arn": arn,
-          },
-        },
-        vpcId: eksVpc.vpcId,
-      },
-    },
-  });
-  return;
-});
-
 /* Karpenter Configuration */
 export const karpenterIrsaRole = new aws.iam.Role(
   `${eksClusterName}-role-karpenter`, // Name of the IAM Role
@@ -336,106 +304,131 @@ new aws.iam.RolePolicy(
   }
 );
 
-/*
- * Define configurations for Amazon CloudWatch observability
- * This includes settings related to CloudWatch monitoring and logging.
- */
-gitPrFiles.push({
-  fileName: "amazon-cloudwatch-observability",
-  json: {
-    "amazon-cloudwatch-observability": {
-      clusterName: environment,
-      region: region,
-    },
-  },
-});
+export const eksAddonsPrFiles = pulumi
+  .all([
+    awsEbsCsiDriverIrsaRole.arn, 
+    awsLoadBalancerControllerRole.arn, 
+    karpenterIrsaRole.arn,
+    wildcardCertificate.arn,
+  ])
+  .apply(() => {
 
-/*
- * Configure Ingress-NGINX with ALB (Application Load Balancer) settings
- * This includes SSL/TLS configuration and ALB-specific annotations for handling ingress traffic.
- */
-wildcardCertificate.arn.apply((arn) => {
-  gitPrFiles.push({
-    fileName: "ingress-nginx",
-    json: {
-      "ingress-nginx": {
-        controller: {
-          service: {
-            annotations: {
-              "alb.ingress.kubernetes.io/actions.ssl-redirect": JSON.stringify({
-                Type: "redirect",
-                RedirectConfig: {
-                  Protocol: "HTTPS",
-                  Port: "443",
-                  StatusCode: "HTTP_301",
-                },
-              }),
-              "alb.ingress.kubernetes.io/backend-protocol": "HTTPS",
-              "alb.ingress.kubernetes.io/certificate-arn": arn,
-              "alb.ingress.kubernetes.io/listen-ports": JSON.stringify([
-                { HTTP: 80 },
-                { HTTPS: 443 },
-              ]),
-              "alb.ingress.kubernetes.io/proxy-body-size": "0",
-              "alb.ingress.kubernetes.io/scheme": "internal",
-              "alb.ingress.kubernetes.io/ssl-policy":
-                "ELBSecurityPolicy-FS-1-2-Res-2020-10",
-              "alb.ingress.kubernetes.io/ssl-redirect": "443",
-              "alb.ingress.kubernetes.io/target-type": "ip",
-              "kubernetes.io/ingress.class": "alb",
-              "service.beta.kubernetes.io/aws-load-balancer-backend-protocol":
-                "http",
-              "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout":
-                "3600",
-              "service.beta.kubernetes.io/aws-load-balancer-ssl-cert": arn,
-              "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",
+    /* Define configurations for Amazon EBS CSI Driver */
+    gitPrFiles.push({
+      fileName: "aws-ebs-csi-driver",
+      json: {
+        "aws-ebs-csi-driver": {
+          controller: {
+            serviceAccount: {
+              annotations: {
+                "eks.amazonaws.com/role-arn": awsEbsCsiDriverIrsaRole.arn,
+              },
             },
           },
         },
       },
-    },
-  });
-  return;
-});
+    });
 
-/*
- * Define Karpenter configuration settings
- * This configuration is for automatic Kubernetes cluster scaling using Karpenter.
- */
-karpenterIrsaRole.arn.apply((arn) => {
-  gitPrFiles.push({
-    fileName: "karpenter",
-    json: {
-      karpenter: {
-        settings: {
+    /* Define configurations for Amazon CloudWatch observability */
+    gitPrFiles.push({
+      fileName: "amazon-cloudwatch-observability",
+      json: {
+        "amazon-cloudwatch-observability": {
           clusterName: environment,
+          region: region,
         },
-        serviceAccount: {
-          name: "karpenter-sa",
-          annotations: {
-            "eks.amazonaws.com/role-arn": arn
+      },
+    });
+
+    /* Define Karpenter configuration settings */
+    gitPrFiles.push({
+      fileName: "karpenter",
+      json: {
+        karpenter: {
+          settings: {
+            clusterName: environment,
+          },
+          serviceAccount: {
+            name: "karpenter-sa",
+            annotations: {
+              "eks.amazonaws.com/role-arn": karpenterIrsaRole.arn,
+            }
+          },
+          defaultProvisioner: {
+            requirements: [
+              {
+                key: "node.kubernetes.io/instance-type",
+                operator: "In",
+                values: [
+                  "t3.medium", 
+                  "t3.large"
+                ],
+              },
+            ]
           }
         },
-        defaultProvisioner: {
-          requirements: [
-            {
-              key: "node.kubernetes.io/instance-type",
-              operator: "In",
-              values: [
-                "t3.medium", 
-                "t3.large"
-              ],
-            },
-          ]
-        }
       },
-    },
-  });
-});
+    });
 
-export const eksAddonsPrFiles = pulumi
-  .all([awsEbsCsiDriverIrsaRole.arn, awsLoadBalancerControllerRole.arn])
-  .apply(() => {
+    /* Configure Ingress-NGINX with ALB (Application Load Balancer) settings */
+    gitPrFiles.push({
+      fileName: "ingress-nginx",
+      json: {
+        "ingress-nginx": {
+          controller: {
+            service: {
+              annotations: {
+                "alb.ingress.kubernetes.io/actions.ssl-redirect": JSON.stringify({
+                  Type: "redirect",
+                  RedirectConfig: {
+                    Protocol: "HTTPS",
+                    Port: "443",
+                    StatusCode: "HTTP_301",
+                  },
+                }),
+                "alb.ingress.kubernetes.io/backend-protocol": "HTTPS",
+                "alb.ingress.kubernetes.io/certificate-arn": wildcardCertificate.arn,
+                "alb.ingress.kubernetes.io/listen-ports": JSON.stringify([
+                  { HTTP: 80 },
+                  { HTTPS: 443 },
+                ]),
+                "alb.ingress.kubernetes.io/proxy-body-size": "0",
+                "alb.ingress.kubernetes.io/scheme": "internal",
+                "alb.ingress.kubernetes.io/ssl-policy":
+                  "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+                "alb.ingress.kubernetes.io/ssl-redirect": "443",
+                "alb.ingress.kubernetes.io/target-type": "ip",
+                "kubernetes.io/ingress.class": "alb",
+                "service.beta.kubernetes.io/aws-load-balancer-backend-protocol":
+                  "http",
+                "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout":
+                  "3600",
+                "service.beta.kubernetes.io/aws-load-balancer-ssl-cert": wildcardCertificate.arn,
+                "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",
+              },
+            },
+          },
+        },
+      },
+    });
+
+    /* AWS Load Balancer Controller Configuration */
+    gitPrFiles.push({
+      fileName: "aws-load-balancer-controller",
+      json: {
+        "aws-load-balancer-controller": {
+          clusterName: environment,
+          region: region,
+          serviceAccount: {
+            annotations: {
+              "eks.amazonaws.com/role-arn": awsLoadBalancerControllerRole.arn,
+            },
+          },
+          vpcId: eksVpc.vpcId,
+        },
+      },
+    });
+
     // Process the git PR files after both ARNs are resolved
     return processGitPrFiles(gitPrFiles);
   });

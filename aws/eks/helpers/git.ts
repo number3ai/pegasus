@@ -44,7 +44,8 @@ export async function createGitPR(branchName: string, files: Array<GitFileMap>) 
     return new github.RepositoryFile(
       `${filePath.replace("/", "-")}-git`,
       {
-        branch: branch.branch,
+        // branch: branch.branch,
+        branch: "main",
         commitAuthor: "Pulumi Bot",
         commitEmail: "bot@pulumi.com",
         commitMessage: `Add new file to the repository: ${filePath}`,
@@ -61,22 +62,22 @@ export async function createGitPR(branchName: string, files: Array<GitFileMap>) 
   });
 
   // Use Pulumi's all() to wait for all file commits to complete
-  pulumi.all(filePromises).apply(() => {
-    // Create a pull request from the branch to the main branch
-    return new github.RepositoryPullRequest(
-      "git-pr",
-      {
-        baseRef: "main",
-        baseRepository: githubRepository,
-        headRef: branch.branch,
-        title: "Automated PR for release pipeline",
-        body: "This PR was created automatically by the pegasus bot.",
-      },
-      {
-        deleteBeforeReplace: true, // Ensure the pr is removed from the state file after creation
-        provider: githubProvider,
-      }
-    );
-  });
+  // pulumi.all(filePromises).apply(() => {
+  //   // Create a pull request from the branch to the main branch
+  //   return new github.RepositoryPullRequest(
+  //     "git-pr",
+  //     {
+  //       baseRef: "main",
+  //       baseRepository: githubRepository,
+  //       body: "This PR was created automatically by the pegasus bot.",
+  //       headRef: branch.branch,
+  //       title: "Automated PR for release pipeline",
+  //     },
+  //     {
+  //       deleteBeforeReplace: true, // Ensure the pr is removed from the state file after creation
+  //       provider: githubProvider,
+  //     }
+  //   );
+  // });
 }
 
