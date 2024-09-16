@@ -202,6 +202,17 @@ export const argocd = new kubernetes.helm.v3.Release(
                 summary: "[{{`{{$labels.name}}`}}] Application not synchronized",
                 description: "The application [{{`{{$labels.name}}`}}] has not been synchronized for over 12 hours which means that the state of this cloud has drifted away from the state inside Git.",
               },
+            }, {
+              alert: "ArgocdServiceUnhealthy",
+              expr: "argocd_app_info{health_status!=\"Healthy\"} != 0",
+              for: "15m",
+              labels: {
+                severity: "warning",
+              },
+              annotations: {
+                summary: "ArgoCD service unhealthy (instance {{ $labels.instance }})",
+                description: "Service {{ $labels.name }} run by argo is currently not healthy.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              },
             },
           ],
         },
