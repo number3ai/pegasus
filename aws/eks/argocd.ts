@@ -167,6 +167,56 @@ export const argocd = new kubernetes.helm.v3.Release(
           hostname: `argocd.${dnsPublicDomain}`, // Ingress hostname
         },
       },
+      metrics: {
+        enabled: true,
+        applicationLabels: {
+          enabled: true,
+        },
+        serviceMonitor: {
+          enabled: true,
+          namespace: "monitoring",
+        },
+        rules: {
+          enabled: true,
+          namespace: "monitoring",
+          spec: [
+            {
+              alert: "ArgoAppMissing",
+              expr: "absent(argocd_app_info) == 1",
+              for: "15m",
+              labels: {
+                severity: "critical",
+              },
+              annotations: {
+                summary: "[Argo CD] No reported applications",
+                description: "Argo CD has not reported any applications data for the past 15 minutes which means that it must be down or not functioning properly.  This needs to be resolved for this cloud to continue to maintain state.",
+              },
+            }, {
+              alert: "ArgoAppNotSynced",
+              expr: "argocd_app_info{sync_status!=\"Synced\"} == 1",
+              for: "12h",
+              labels: {
+                severity: "warning",
+              },
+              annotations: {
+                summary: "[{{`{{$labels.name}}`}}] Application not synchronized",
+                description: "The application [{{`{{$labels.name}}`}}] has not been synchronized for over 12 hours which means that the state of this cloud has drifted away from the state inside Git.",
+              },
+            }, {
+              alert: "ArgocdServiceUnhealthy",
+              expr: "argocd_app_info{health_status!=\"Healthy\"} != 0",
+              for: "15m",
+              labels: {
+                severity: "warning",
+              },
+              annotations: {
+                summary: "ArgoCD service unhealthy (instance {{ $labels.instance }})",
+                description: "Service {{ $labels.name }} run by argo is currently not healthy.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              },
+            },
+          ],
+        },
+      },
     },
   },
   {
