@@ -6,8 +6,7 @@ fs.readdirSync("./eks-addons")
   .forEach(async file => {
     // Dynamically import the module
 
-    pulumi.log.info(`Importing: ${file}`);
-    pulumi.log.info(`Module: ${file.replace('.ts', '')}`);
+    if (file.replace('.ts', '') === "grafana") {pulumi.log.info(`${file.replace('.ts', '')}: importing Module`);}
     await import(`./eks-addons/${file.replace('.ts', '')}`);
   });
 
