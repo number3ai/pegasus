@@ -15,7 +15,11 @@ const eksAddonsPrFiles: any = [];
 ].forEach( addon => {
   import(`./eks-addons/${addon}`);
   import(`./eks-addons/${addon}`).then( module => {
+    try {
+      eksAddonsPrFiles.push(module.role.arn.apply(() => module.valueFile));
+    } catch (error) {
       eksAddonsPrFiles.push(module.valueFile);
+    }
   });
 });
 

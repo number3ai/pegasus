@@ -1,6 +1,6 @@
-import { wildcardCertificate } from "../dns";
+import { wildcardCertificate as role } from "../dns";
 
-export const valueFile = wildcardCertificate.arn.apply(arn => {
+export const valueFile = role.arn.apply(arn => {
   return {
     fileName: "ingress-nginx",
     json: {

@@ -1,7 +1,7 @@
 
 import { createIRSARole } from "../helpers/aws"; // Import the createIRSARole function
 
-export const awsEbsCsiDriverIrsaRole = createIRSARole(
+export const role = createIRSARole(
   "aws-ebs-csi-driver",
   "kube-system",
   ["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"],
@@ -17,7 +17,7 @@ export const awsEbsCsiDriverIrsaRole = createIRSARole(
   ]
 );
 
-export const valueFile = awsEbsCsiDriverIrsaRole.arn.apply(arn => {
+export const valueFile = role.arn.apply(arn => {
   return {
     fileName: "aws-ebs-csi-driver",
     json: {

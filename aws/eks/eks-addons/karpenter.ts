@@ -1,7 +1,7 @@
 import { accountId, environment, region } from "../variables";
 import { createIRSARole } from "../helpers/aws";
 
-const karpenterIrsaRole = createIRSARole(
+export const role = createIRSARole(
   "karpenter",
   "kube-system",
   [],
@@ -47,7 +47,7 @@ const karpenterIrsaRole = createIRSARole(
   ]
 );
 
-export const valueFile = karpenterIrsaRole.arn.apply(arn => {
+export const valueFile = role.arn.apply(arn => {
   return {
     fileName: "karpenter",
     json: {

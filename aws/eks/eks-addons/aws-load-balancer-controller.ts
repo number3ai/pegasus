@@ -2,7 +2,7 @@ import { eksVpc } from "../eks";
 import { environment, region } from "../variables";
 import { createIRSARole } from "../helpers/aws";
 
-const awsLoadBalancerControllerRole = createIRSARole(
+const role = createIRSARole(
   "aws-load-balancer-controller",
   "kube-system",
   [],
@@ -37,7 +37,7 @@ const awsLoadBalancerControllerRole = createIRSARole(
   ]
 );
 
-export const valueFile = awsLoadBalancerControllerRole.arn.apply(arn => {
+export const valueFile = role.arn.apply(arn => {
   return {
     fileName: "aws-load-balancer-controller",
     json: {

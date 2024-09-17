@@ -56,14 +56,14 @@ new aws.secretsmanager.SecretVersion(
   }
 );
 
-const grafanaIrsaRole = createIRSARole(
+export const role = createIRSARole(
   "grafana",
   "monitoring",
   ["arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"],
   []
 );
 
-export const valueFile = grafanaIrsaRole.arn.apply(arn => {
+export const valueFile = role.arn.apply(arn => {
   return {
     fileName: "grafana",
     json: {
