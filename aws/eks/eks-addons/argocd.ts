@@ -1,50 +1,10 @@
-/**
- * This Pulumi code is used to automate the setup and configuration of an AWS EKS cluster
- * integrated with GitHub and ArgoCD, focusing on deploying Kubernetes applications.
- *
- * Breakdown:
- *
- * 1. **GitHub Deployment Key Setup:**
- *    - Generates an ED25519 SSH private key using the `tls` package.
- *    - Registers this SSH key as a "deploy key" in a specified GitHub repository, allowing
- *      the EKS cluster to securely pull code from the repository.
- *
- * 2. **ArgoCD Admin Password:**
- *    - Creates a random 24-character password for the ArgoCD admin user using `RandomPassword`.
- *    - Stores the ArgoCD admin credentials (username and password) in AWS Secrets Manager
- *      using the `aws.secretsmanager.Secret` resource to ensure sensitive credentials are
- *      stored securely.
- *
- * 3. **ArgoCD Installation via Helm:**
- *    - Uses the `kubernetes.helm.v3.Release` resource to install ArgoCD on the Kubernetes cluster.
- *    - Configures ArgoCD to allow insecure connections (via the `server.insecure` setting) and
- *      sets up GitHub repository access using the generated SSH key.
- *    - Adds the ArgoCD admin password to the ArgoCD server configuration.
- *    - Configures an Nginx-based ingress for ArgoCD, accessible via a public DNS domain
- *      (`argocd.{dnsPublicDomain}`).
- *
- * 4. **ArgoCD Application Management:**
- *    - Once ArgoCD is installed, the script sets up "App of Apps" patterns using the
- *      `kubernetes.helm.v4.Chart` resource.
- *    - Each ArgoCD app pulls its configuration from a specific path in the GitHub repository and
- *      deploys to the Kubernetes cluster. The configuration includes Helm chart values files,
- *      specific to the environment and application.
- *    - Sync policies for these applications are automated, with pruning and self-healing enabled,
- *      allowing ArgoCD to automatically reconcile and heal any configuration drift.
- *
- * Summary:
- * This code automates the deployment of ArgoCD into an AWS EKS cluster, integrates it with
- * a GitHub repository using SSH deploy keys, secures credentials in AWS Secrets Manager,
- * and sets up automated Kubernetes app deployment with ArgoCD using a Helm-based "App of Apps" approach.
- */
-
 import * as aws from "@pulumi/aws"; // Import AWS-related resources from Pulumi
 import * as github from "@pulumi/github"; // Import GitHub-related resources from Pulumi
 import * as kubernetes from "@pulumi/kubernetes"; // Import Kubernetes-related resources from Pulumi
 import * as random from "@pulumi/random"; // Import random generation utilities from Pulumi
 import * as tls from "@pulumi/tls"; // Import TLS-related resources from Pulumi
 
-import { awsProvider, githubProvider, k8sProvider } from "./providers"; // Import provider configurations
+import { awsProvider, githubProvider, k8sProvider } from "../providers"; // Import provider configurations
 import {
   argoCdAppsVersion,
   argoCdVersion,
@@ -56,10 +16,8 @@ import {
   githubBootloaders,
   githubRepository,
   tags,
-} from "./variables"; // Import necessary variables
-import { GitFileMap, processGitPrFiles } from "./helpers/git"; // Import the createGitPR function
-
-export const gitPrFiles = new Array<GitFileMap>();
+} from "../variables"; // Import necessary variables
+import { uploadValueFile } from "../helpers/git"; // Import the createGitPR function
 
 // Construct GitHub repository URL
 const githubRepositoryUrl = `git@github.com:${githubOwner}/${githubRepository}.git`;
@@ -281,12 +239,10 @@ githubBootloaders.map((key) => {
     }
   );
 
-  gitPrFiles.push({
+  uploadValueFile({
     fileName: `app-of-apps-${key}`,
     json: {
       environment: environment,
     },
   });
 });
-
-export const argoCdPrFiles = processGitPrFiles(gitPrFiles);
