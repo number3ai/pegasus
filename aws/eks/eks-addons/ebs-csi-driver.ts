@@ -16,7 +16,7 @@ createIRSARole(
       resources: ["*"],
     },
   ]
-).arn.apply(arn => {
+).apply(arn => {
   uploadValueFile({
     fileName: "aws-ebs-csi-driver",
     json: {

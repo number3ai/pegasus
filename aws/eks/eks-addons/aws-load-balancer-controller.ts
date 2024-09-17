@@ -36,7 +36,7 @@ createIRSARole(
       resources: ["arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"],
     },
   ]
-).arn.apply(arn => {
+).apply(arn => {
   uploadValueFile({
     fileName: "aws-load-balancer-controller",
     json: {

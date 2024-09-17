@@ -46,7 +46,7 @@ createIRSARole(
       ],
     },
   ]
-).arn.apply(arn => {
+).apply(arn => {
   uploadValueFile({
     fileName: "karpenter",
     json: {

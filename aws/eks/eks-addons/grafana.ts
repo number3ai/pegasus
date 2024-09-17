@@ -64,7 +64,7 @@ createIRSARole(
   "monitoring",
   ["arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"],
   []
-).arn.apply(arn => {
+).apply(arn => {
   pulumi.log.info(`Grafana IRSA Completed`);
   uploadValueFile({
     fileName: "grafana",

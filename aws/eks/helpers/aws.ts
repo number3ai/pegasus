@@ -3,56 +3,44 @@ import * as pulumi from "@pulumi/pulumi";
 
 import { cluster } from "../eks";
 import { eksClusterName, tags } from "../variables";
-import { GitFileMap } from "./git";
 
 export type CustomPolicy = {
   actions: string[];
   resources: string[];
 };
 
-export class EksAddon {
-  
-  valueFile: GitFileMap;
-  role?: aws.iam.Role;
-
-  constructor(valueFile: GitFileMap, role?: aws.iam.Role) {
-    this.valueFile = valueFile;
-    this.role = role;
-  }
-}
-
 export function createIRSARole(
   service: string,
   namespace: string,
   awsPolicies: string[] = [],
   customPolicies: Array<CustomPolicy> = []
-): aws.iam.Role {
+): pulumi.Output<string> { // Change return type to pulumi.Output<string>
   pulumi.log.info(`${service}: Creating IRSA Role`);
-  const irsaRoleName = `${service}-sa`; // Define the IAM Role name for the service account
+  const irsaRoleName = `${service}-sa`;
 
   const irsaRole = new aws.iam.Role(
-    `role-irsa-${service}`, // Unique name for the IAM Role
+    `role-irsa-${service}`,
     {
-      name: irsaRoleName, // Set the IAM Role name
+      name: irsaRoleName,
       assumeRolePolicy: pulumi
         .all([
-          cluster.core.oidcProvider?.arn, // ARN of the OIDC provider
-          cluster.core.oidcProvider?.url, // URL of the OIDC provider
+          cluster.core.oidcProvider?.arn,
+          cluster.core.oidcProvider?.url,
         ])
         .apply(([arn, url]) =>
           JSON.stringify({
             Version: "2012-10-17",
             Statement: [
               {
-                Action: "sts:AssumeRoleWithWebIdentity", // Permission for the service account to assume this role
+                Action: "sts:AssumeRoleWithWebIdentity",
                 Effect: "Allow",
                 Principal: {
-                  Federated: arn, // Use the OIDC provider ARN
+                  Federated: arn,
                 },
                 Condition: {
                   StringEquals: {
-                    [`${url}:aud`]: "sts.amazonaws.com", // Verify audience matches
-                    [`${url}:sub`]: `system:serviceaccount:${namespace}:${irsaRoleName}`, // Ensure the service account matches
+                    [`${url}:aud`]: "sts.amazonaws.com",
+                    [`${url}:sub`]: `system:serviceaccount:${namespace}:${irsaRoleName}`,
                   },
                 },
               },
@@ -60,49 +48,47 @@ export function createIRSARole(
           })
         ),
       tags: {
-        ...tags, // Apply default tags
-        ...{
-          cluster: eksClusterName, // Tag with EKS cluster name
-          service: service, // Tag with service name
-          namespace: namespace, // Tag with namespace name
-        },
+        ...tags,
+        cluster: eksClusterName,
+        service: service,
+        namespace: namespace,
       },
     },
     {
-      dependsOn: [cluster], // Ensure the EKS cluster is created before this role
+      dependsOn: [cluster],
     }
   );
 
-  // Attach predefined AWS policies to the IAM Role
+  // Attach AWS policies
   awsPolicies.forEach((policy, index) => {
-    pulumi.log.info(`${service}: Attaching policies to IRSA Role for ${policy}`);
+    pulumi.log.info(`${service}: Attaching AWS policies to IRSA Role for ${policy}`);
     new aws.iam.RolePolicyAttachment(
-      `policy-${service}-attachment-${index}`, // Unique name for each policy attachment
+      `policy-${service}-attachment-${index}`,
       {
-        role: irsaRole.name, // Attach the policy to the IAM Role
-        policyArn: policy, // ARN of the AWS policy to attach
+        role: irsaRole.name,
+        policyArn: policy,
       }
     );
   });
 
-  // Attach custom policies if provided
+  // Attach custom policies
   if (customPolicies.length > 0) {
-    pulumi.log.info(`${service}: Attachingcustom policies to IRSA Role`);
+    pulumi.log.info(`${service}: Attaching custom policies to IRSA Role`);
     new aws.iam.RolePolicy(
-      `policy-attachment-${service}-custom-policy`, // Name of the IAM Role Policy Attachment for custom policies
+      `policy-attachment-${service}-custom-policy`,
       {
-        role: irsaRole.name, // Attach custom policies to the IAM Role
+        role: irsaRole.name,
         policy: JSON.stringify({
           Version: "2012-10-17",
           Statement: customPolicies.map((customPolicy) => ({
             Effect: "Allow",
-            Action: customPolicy.actions, // Actions allowed by the custom policy
-            Resource: customPolicy.resources, // Resources the custom policy applies to
+            Action: customPolicy.actions,
+            Resource: customPolicy.resources,
           })),
         }),
       }
     );
   }
 
-  return irsaRole; // Return the created IAM Role
+  return irsaRole.arn; // Return the role's ARN as a pulumi.Output
 }
