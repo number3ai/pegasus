@@ -548,13 +548,13 @@ export const eksAddonsPrFiles = pulumi
             },
           },
           serviceAccount: {
-            labels: {
+            annotations: {
               "eks.amazonaws.com/role-arn": grafanaIrsaRole.arn,
             },
           },
           admin: {
             existingSecret: grafanaAdminSecret.name,
-            userKey: "user",
+            userKey: "username",
             passwordKey: "password",
           },
         },
