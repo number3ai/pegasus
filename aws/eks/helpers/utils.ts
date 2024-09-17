@@ -1,5 +1,5 @@
-
 import * as yaml from "js-yaml";
+import * as pulumi from "@pulumi/pulumi";
 
 import { Buffer } from "buffer";
 
