@@ -1,6 +1,5 @@
 import { accountId, environment, region } from "../variables";
 import { createIRSARole } from "../helpers/aws";
-import { processGitPrFiles } from "../helpers/git";
 
 const karpenterIrsaRole = createIRSARole(
   "karpenter",
@@ -48,32 +47,30 @@ const karpenterIrsaRole = createIRSARole(
   ]
 );
 
-karpenterIrsaRole.arn.apply(arn => {
-  processGitPrFiles([
-    {
-      fileName: "karpenter",
-      json: {
-        karpenter: {
-          settings: {
-            clusterName: environment,
+export const valueFile = karpenterIrsaRole.arn.apply(arn => {
+  return {
+    fileName: "karpenter",
+    json: {
+      karpenter: {
+        settings: {
+          clusterName: environment,
+        },
+        serviceAccount: {
+          name: "karpenter-sa",
+          annotations: {
+            "eks.amazonaws.com/role-arn": arn,
           },
-          serviceAccount: {
-            name: "karpenter-sa",
-            annotations: {
-              "eks.amazonaws.com/role-arn": arn,
+        },
+        defaultProvisioner: {
+          requirements: [
+            {
+              key: "node.kubernetes.io/instance-type",
+              operator: "In",
+              values: ["t3.medium", "t3.large"],
             },
-          },
-          defaultProvisioner: {
-            requirements: [
-              {
-                key: "node.kubernetes.io/instance-type",
-                operator: "In",
-                values: ["t3.medium", "t3.large"],
-              },
-            ],
-          },
+          ],
         },
       },
     },
-  ]);
+  };
 });

@@ -1,7 +1,6 @@
 import { eksVpc } from "../eks";
 import { environment, region } from "../variables";
 import { createIRSARole } from "../helpers/aws";
-import { processGitPrFiles } from "../helpers/git";
 
 const awsLoadBalancerControllerRole = createIRSARole(
   "aws-load-balancer-controller",
@@ -38,22 +37,20 @@ const awsLoadBalancerControllerRole = createIRSARole(
   ]
 );
 
-awsLoadBalancerControllerRole.arn.apply(arn => {
-  processGitPrFiles([
-    {
-      fileName: "aws-load-balancer-controller",
-      json: {
-        "aws-load-balancer-controller": {
-          clusterName: environment,
-          region: region,
-          serviceAccount: {
-            annotations: {
-              "eks.amazonaws.com/role-arn": arn,
-            },
+export const valueFile = awsLoadBalancerControllerRole.arn.apply(arn => {
+  return {
+    fileName: "aws-load-balancer-controller",
+    json: {
+      "aws-load-balancer-controller": {
+        clusterName: environment,
+        region: region,
+        serviceAccount: {
+          annotations: {
+            "eks.amazonaws.com/role-arn": arn,
           },
-          vpcId: eksVpc.vpcId,
         },
+        vpcId: eksVpc.vpcId,
       },
     },
-  ]);
+  };
 });

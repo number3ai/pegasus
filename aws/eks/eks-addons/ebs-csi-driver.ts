@@ -1,6 +1,5 @@
 
 import { createIRSARole } from "../helpers/aws"; // Import the createIRSARole function
-import { processGitPrFiles } from "../helpers/git"; // Import the createGitPR function
 
 export const awsEbsCsiDriverIrsaRole = createIRSARole(
   "aws-ebs-csi-driver",
@@ -18,21 +17,19 @@ export const awsEbsCsiDriverIrsaRole = createIRSARole(
   ]
 );
 
-awsEbsCsiDriverIrsaRole.arn.apply(arn => {
-  processGitPrFiles([
-    {
-      fileName: "aws-ebs-csi-driver",
-      json: {
-        "aws-ebs-csi-driver": {
-          controller: {
-            serviceAccount: {
-              annotations: {
-                "eks.amazonaws.com/role-arn": arn,
-              },
+export const valueFile = awsEbsCsiDriverIrsaRole.arn.apply(arn => {
+  return {
+    fileName: "aws-ebs-csi-driver",
+    json: {
+      "aws-ebs-csi-driver": {
+        controller: {
+          serviceAccount: {
+            annotations: {
+              "eks.amazonaws.com/role-arn": arn,
             },
           },
         },
       },
-    }
-  ]);
+    },
+  };
 });

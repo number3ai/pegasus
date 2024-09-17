@@ -5,7 +5,6 @@ import { cluster } from "../eks";
 import { awsProvider } from "../providers";
 import { eksClusterName, region, tags } from "../variables";
 import { createIRSARole } from "../helpers/aws";
-import { processGitPrFiles } from "../helpers/git";
 
 /*
  * Grafana Admin Password Setup
@@ -64,50 +63,48 @@ const grafanaIrsaRole = createIRSARole(
   []
 );
 
-grafanaIrsaRole.arn.apply(arn => {
-  processGitPrFiles([
-    {
-      fileName: "grafana",
-      json: {
-        grafana: {
-          datasources: {
-            "datasources.yaml": {
-              apiVersion: 1,
-              datasources: [
-                {
-                  name: "Prometheus",
-                  type: "prometheus",
-                  access: "proxy",
-                  url: "http://prometheus.monitoring.svc.cluster.local",
-                  isDefault: true,
-                  editable: false,
+export const valueFile = grafanaIrsaRole.arn.apply(arn => {
+  return {
+    fileName: "grafana",
+    json: {
+      grafana: {
+        datasources: {
+          "datasources.yaml": {
+            apiVersion: 1,
+            datasources: [
+              {
+                name: "Prometheus",
+                type: "prometheus",
+                access: "proxy",
+                url: "http://prometheus.monitoring.svc.cluster.local",
+                isDefault: true,
+                editable: false,
+              },
+              {
+                name: "CloudWatch",
+                type: "cloudwatch",
+                access: "proxy",
+                uid: "cloudwatch",
+                editable: false,
+                jsonData: {
+                  authType: "default",
+                  defaultRegion: region,
                 },
-                {
-                  name: "CloudWatch",
-                  type: "cloudwatch",
-                  access: "proxy",
-                  uid: "cloudwatch",
-                  editable: false,
-                  jsonData: {
-                    authType: "default",
-                    defaultRegion: region,
-                  },
-                },
-              ],
-            },
+              },
+            ],
           },
-          serviceAccount: {
-            annotations: {
-              "eks.amazonaws.com/role-arn": arn,
-            },
-          },
-          // admin: {
-          //   existingSecret: "grafana-credentials",
-          //   userKey: "username",
-          //   passwordKey: "password",
-          // },
         },
+        serviceAccount: {
+          annotations: {
+            "eks.amazonaws.com/role-arn": arn,
+          },
+        },
+        // admin: {
+        //   existingSecret: "grafana-credentials",
+        //   userKey: "username",
+        //   passwordKey: "password",
+        // },
       },
     },
-  ]);
+  };
 });
