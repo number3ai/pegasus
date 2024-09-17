@@ -96,7 +96,7 @@ uploadValueFile({
       },
       serviceAccount: {
         annotations: {
-          "eks.amazonaws.com/role-arn": role.arn.apply((arn) => arn),
+          "eks.amazonaws.com/role-arn": role.arn.get(),
         },
       },
       // admin: {
