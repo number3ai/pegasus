@@ -1,5 +1,6 @@
 import * as aws from "@pulumi/aws";
 import * as random from "@pulumi/random";
+import * as pulumi from "@pulumi/pulumi";
 
 import { cluster } from "../eks";
 import { awsProvider } from "../providers";
@@ -57,12 +58,14 @@ new aws.secretsmanager.SecretVersion(
   }
 );
 
+pulumi.log.info(`Grafana IRSA Started`);
 createIRSARole(
   "grafana",
   "monitoring",
-  ["arn:aws:iam::aws:policy/CloudWatchFullAccess"],
+  ["arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"],
   []
 ).arn.apply(arn => {
+  pulumi.log.info(`Grafana IRSA Completed`);
   uploadValueFile({
     fileName: "grafana",
     json: {

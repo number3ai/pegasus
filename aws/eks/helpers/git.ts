@@ -1,4 +1,5 @@
 import * as github from "@pulumi/github";
+import * as pulumi from "@pulumi/pulumi";
 
 import { githubProvider } from "../providers";
 import { environment, githubRepository } from "../variables";
@@ -13,6 +14,7 @@ export type GitFileMap = {
 // Create a GitHub Pull Request with a branch and a set of files
 export function uploadValueFile(file: GitFileMap) {
   // Create an array of RepositoryFile promises 
+  pulumi.log.info(`Uploading file: ${file.fileName}.yaml`);
   const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
 
   // Add or overwrite a file in the specified branch
