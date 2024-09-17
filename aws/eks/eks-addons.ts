@@ -1,9 +1,12 @@
 import * as fs from 'fs';
 
-fs.readdirSync("./eks-addons")
-  .filter(file => file.endsWith(".ts")) // Only process TypeScript files
+// Directory containing TypeScript files
+const addonsDir = "./eks-addons";
+
+// Read and process TypeScript files from the directory
+fs.readdirSync(addonsDir)
+  .filter(file => file.endsWith(".ts")) // Filter to process only TypeScript files
   .forEach(async file => {
     // Dynamically import the module
-    await import(`./eks-addons/${file.replace('.ts', '')}`);
+    await import(`${addonsDir}/${file.replace(".ts", "")}`);
   });
-

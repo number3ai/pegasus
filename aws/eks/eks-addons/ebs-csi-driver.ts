@@ -1,5 +1,4 @@
-
-import { createIRSARole } from "../helpers/aws"; // Import the createIRSARole function
+import { createIRSARole } from "../helpers/aws";
 import { uploadValueFile } from "../helpers/git";
 
 createIRSARole(

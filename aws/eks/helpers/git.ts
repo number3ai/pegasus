@@ -10,9 +10,8 @@ export type GitFileMap = {
   json: object;
 };
 
-// Create a GitHub Pull Request with a branch and a set of files
-export function uploadValueFile(file: GitFileMap) {
-  // Create an array of RepositoryFile promises 
+// Create a GitHub RepositoryFile with a branch and a set of files
+export function uploadValueFile(file: GitFileMap): github.RepositoryFile {
   const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
 
   // Add or overwrite a file in the specified branch
@@ -28,10 +27,9 @@ export function uploadValueFile(file: GitFileMap) {
       overwriteOnCreate: true,
       repository: githubRepository,
     },
-    {      
+    {
       deleteBeforeReplace: true, // Ensure the file is removed from the state file after creation
       provider: githubProvider,
     }
-  )
+  );
 }
-
