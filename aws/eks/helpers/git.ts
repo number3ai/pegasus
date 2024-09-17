@@ -29,7 +29,7 @@ export async function uploadValuesFile(files: Array<GitFileMap>) {
 
     // Add or overwrite a file in the specified branch
     return new github.RepositoryFile(
-      `${filePath.replace("/", "-")}-git`,
+      `git-file-${filePath.replace("/", "-")}`,
       {
         // branch: branch.branch,
         branch: "main",
