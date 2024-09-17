@@ -1,6 +1,7 @@
 import { eksVpc } from "../eks";
 import { environment, region } from "../variables";
-import { createIRSARole, EksAddon } from "../helpers/aws";
+import { createIRSARole } from "../helpers/aws";
+import { uploadValueFile } from "../helpers/git";
 
 const role = createIRSARole(
   "aws-load-balancer-controller",
@@ -37,8 +38,8 @@ const role = createIRSARole(
   ]
 );
 
-export const addon = role.arn.apply(arn => {
-  const valueFile = {
+role.arn.apply(arn => {
+  uploadValueFile({
     fileName: "aws-load-balancer-controller",
     json: {
       "aws-load-balancer-controller": {
@@ -52,7 +53,5 @@ export const addon = role.arn.apply(arn => {
         vpcId: eksVpc.vpcId,
       },
     },
-  };
-
-  return new EksAddon(valueFile, role);
+  });
 });
