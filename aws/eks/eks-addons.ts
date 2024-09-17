@@ -554,7 +554,7 @@ export const eksAddonsPrFiles = pulumi
           },
           admin: {
             existingSecret: grafanaAdminSecret.name,
-            userKey: "user",
+            userKey: "username",
             passwordKey: "password",
           },
         },
