@@ -552,11 +552,11 @@ export const eksAddonsPrFiles = pulumi
               "eks.amazonaws.com/role-arn": grafanaIrsaRole.arn,
             },
           },
-          admin: {
-            existingSecret: grafanaAdminSecret.name,
-            userKey: "username",
-            passwordKey: "password",
-          },
+          // admin: {
+          //   existingSecret: "grafana-credentials",
+          //   userKey: "username",
+          //   passwordKey: "password",
+          // },
         },
       },
     });
