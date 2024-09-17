@@ -1,7 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 
 import * as fs from 'fs';
-import * as path from 'path';
 
 import { argoCdPrFiles } from "./argocd";
 import { processGitPrFiles, uploadValuesFile } from "./helpers/git";
@@ -10,21 +9,21 @@ const directoryPath = './eks-addons';
 const files = fs.readdirSync(directoryPath);
 
 // Output the file names
-const eksAddonsPrFilesPromises = files.map(file => {
-  if (!file.endsWith('.ts')) {
-    return;
+const eksAddonsPrFiles = files.map(file => {
+  if (file.endsWith('.ts')) {
+    const addon = file.replace('.ts', '');
+  
+    import(`./eks-addons/${addon}`)
+      .then(module => {
+        return processGitPrFiles([module.addon.valueFile]);
+      });
   }
 
-  const addon = file.replace('.ts', '');
-  
-  import(`./eks-addons/${addon}`)
-    .then(module => {
-      return processGitPrFiles([module.addon.valueFile]);
-    });
+  return [];
 });
 
 pulumi.all([
-  Promise.all(eksAddonsPrFilesPromises),
+  eksAddonsPrFiles,
   argoCdPrFiles
 ]).apply(([resolvedEksAddonsPrFiles, resolvedArgoCdPrFiles]) => {
   uploadValuesFile([
