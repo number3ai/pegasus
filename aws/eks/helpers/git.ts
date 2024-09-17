@@ -24,6 +24,7 @@ export function processGitPrFiles(gitPrFiles: Array<GitFileMap>): Array<GitFileM
 export async function uploadValuesFile(files: Array<GitFileMap>) {
   // Create an array of RepositoryFile promises
   files.map((file) => {
+    console.log(`Uploading file: ${file.fileName}`);
     const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
 
     // Add or overwrite a file in the specified branch
