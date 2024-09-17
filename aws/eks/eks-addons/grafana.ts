@@ -4,7 +4,7 @@ import * as random from "@pulumi/random";
 import { cluster } from "../eks";
 import { awsProvider } from "../providers";
 import { eksClusterName, region, tags } from "../variables";
-import { createIRSARole } from "../helpers/aws";
+import { createIRSARole, EksAddon } from "../helpers/aws";
 
 /*
  * Grafana Admin Password Setup
@@ -63,8 +63,8 @@ export const role = createIRSARole(
   []
 );
 
-export const valueFile = role.arn.apply(arn => {
-  return {
+export const addon = role.arn.apply(arn => {
+  const valueFile = {
     fileName: "grafana",
     json: {
       grafana: {
@@ -107,4 +107,6 @@ export const valueFile = role.arn.apply(arn => {
       },
     },
   };
+
+  return new EksAddon(valueFile, role);
 });

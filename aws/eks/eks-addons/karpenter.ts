@@ -1,5 +1,5 @@
 import { accountId, environment, region } from "../variables";
-import { createIRSARole } from "../helpers/aws";
+import { createIRSARole, EksAddon } from "../helpers/aws";
 
 export const role = createIRSARole(
   "karpenter",
@@ -47,8 +47,8 @@ export const role = createIRSARole(
   ]
 );
 
-export const valueFile = role.arn.apply(arn => {
-  return {
+export const addon = role.arn.apply(arn => {
+  const valueFile = {
     fileName: "karpenter",
     json: {
       karpenter: {
@@ -73,4 +73,6 @@ export const valueFile = role.arn.apply(arn => {
       },
     },
   };
+
+  return new EksAddon(valueFile, role);
 });

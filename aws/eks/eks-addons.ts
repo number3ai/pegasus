@@ -1,23 +1,27 @@
 import * as pulumi from "@pulumi/pulumi";
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { argoCdPrFiles } from "./argocd";
 import { processGitPrFiles, uploadValuesFile } from "./helpers/git";
 
-const eksAddonsPrFilesPromises = [
-  "amazon-cloudwatch-observability",
-  "aws-load-balancer-controller",
-  "ebs-csi-driver",
-  "grafana",
-  "ingress-nginx",
-  "karpenter",
-].map(addon => 
+const directoryPath = './eks-addons'; 
+const files = fs.readdirSync(directoryPath);
+
+// Output the file names
+const eksAddonsPrFilesPromises = files.map(file => {
+  if (!file.endsWith('.ts')) {
+    return;
+  }
+
+  const addon = file.replace('.ts', '');
+  
   import(`./eks-addons/${addon}`)
-    .then(module => module.role?.arn ? module.role.arn.apply(() => processGitPrFiles([module.valueFile])) : processGitPrFiles([module.valueFile]))
-    .catch(error => {
-      console.error(`Failed to import ${addon}:`, error);
-      return []; // Return an empty array in case of error
-    })
-);
+    .then(module => {
+      return processGitPrFiles([module.addon.valueFile]);
+    });
+});
 
 pulumi.all([
   Promise.all(eksAddonsPrFilesPromises),

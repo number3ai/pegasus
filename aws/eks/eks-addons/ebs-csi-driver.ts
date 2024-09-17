@@ -1,5 +1,5 @@
 
-import { createIRSARole } from "../helpers/aws"; // Import the createIRSARole function
+import { createIRSARole, EksAddon } from "../helpers/aws"; // Import the createIRSARole function
 
 export const role = createIRSARole(
   "aws-ebs-csi-driver",
@@ -17,8 +17,8 @@ export const role = createIRSARole(
   ]
 );
 
-export const valueFile = role.arn.apply(arn => {
-  return {
+export const addon = role.arn.apply(arn => {
+  const valueFile = {
     fileName: "aws-ebs-csi-driver",
     json: {
       "aws-ebs-csi-driver": {
@@ -32,4 +32,6 @@ export const valueFile = role.arn.apply(arn => {
       },
     },
   };
+
+  return new EksAddon(valueFile, role);
 });

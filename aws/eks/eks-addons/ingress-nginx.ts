@@ -1,7 +1,8 @@
 import { wildcardCertificate as role } from "../dns";
+import { EksAddon } from "../helpers/aws";
 
-export const valueFile = role.arn.apply(arn => {
-  return {
+export const addon = role.arn.apply(arn => {
+  const valueFile = {
     fileName: "ingress-nginx",
     json: {
       "ingress-nginx": {
@@ -43,4 +44,6 @@ export const valueFile = role.arn.apply(arn => {
       },
     },
   };
+
+  return new EksAddon(valueFile);
 });

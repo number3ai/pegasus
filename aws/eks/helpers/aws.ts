@@ -3,11 +3,23 @@ import * as pulumi from "@pulumi/pulumi";
 
 import { cluster } from "../eks";
 import { eksClusterName, tags } from "../variables";
+import { GitFileMap } from "./git";
 
 export type CustomPolicy = {
   actions: string[];
   resources: string[];
 };
+
+export class EksAddon {
+  
+  valueFile: GitFileMap;
+  role?: aws.iam.Role;
+
+  constructor(valueFile: GitFileMap, role?: aws.iam.Role) {
+    this.valueFile = valueFile;
+    this.role = role;
+  }
+}
 
 export function createIRSARole(
   service: string,

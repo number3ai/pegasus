@@ -1,6 +1,7 @@
 import { environment, region } from "../variables";
+import { EksAddon } from "../helpers/aws";
 
-export const valueFiles = {
+const valueFile = {
   fileName: "amazon-cloudwatch-observability",
   json: {
     "amazon-cloudwatch-observability": {
@@ -9,3 +10,5 @@ export const valueFiles = {
     },
   },
 };
+
+export const addon = new EksAddon(valueFile);
