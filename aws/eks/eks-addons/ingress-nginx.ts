@@ -18,7 +18,7 @@ uploadValueFile({
                 },
               }),
             "alb.ingress.kubernetes.io/backend-protocol": "HTTPS",
-            "alb.ingress.kubernetes.io/certificate-arn": wildcardCertificate.arn,
+            "alb.ingress.kubernetes.io/certificate-arn": wildcardCertificate.arn.apply(arn => arn),
             "alb.ingress.kubernetes.io/listen-ports": JSON.stringify([
               { HTTP: 80 },
               { HTTPS: 443 },
@@ -34,7 +34,7 @@ uploadValueFile({
               "http",
             "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout":
               "3600",
-            "service.beta.kubernetes.io/aws-load-balancer-ssl-cert": wildcardCertificate.arn,
+            "service.beta.kubernetes.io/aws-load-balancer-ssl-cert": wildcardCertificate.arn.apply(arn => arn),
             "service.beta.kubernetes.io/aws-load-balancer-ssl-ports":
               "https",
           },

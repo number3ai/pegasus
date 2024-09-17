@@ -46,7 +46,7 @@ uploadValueFile({
       region: region,
       serviceAccount: {
         annotations: {
-          "eks.amazonaws.com/role-arn": role.arn,
+          "eks.amazonaws.com/role-arn": role.arn.apply((arn) => arn),
         },
       },
       vpcId: eksVpc.vpcId,

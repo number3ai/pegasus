@@ -58,7 +58,7 @@ uploadValueFile({
       serviceAccount: {
         name: "karpenter-sa",
         annotations: {
-          "eks.amazonaws.com/role-arn": role.arn,
+          "eks.amazonaws.com/role-arn": role.arn.apply((arn) => arn),
         },
       },
       defaultProvisioner: {
