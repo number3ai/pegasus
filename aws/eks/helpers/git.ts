@@ -17,7 +17,7 @@ export function uploadValueFile(file: GitFileMap) {
 
   // Add or overwrite a file in the specified branch
   return new github.RepositoryFile(
-    `git-file-${filePath.replace("/", "-")}`,
+    `${filePath.replace("/", "-")}-git`,
     {
       // branch: branch.branch,
       branch: "main",
