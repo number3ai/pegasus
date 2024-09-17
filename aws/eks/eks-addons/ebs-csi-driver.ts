@@ -18,19 +18,17 @@ export const role = createIRSARole(
   ]
 );
 
-role.arn.apply(arn => {
-  uploadValueFile({
-    fileName: "aws-ebs-csi-driver",
-    json: {
-      "aws-ebs-csi-driver": {
-        controller: {
-          serviceAccount: {
-            annotations: {
-              "eks.amazonaws.com/role-arn": arn,
-            },
+uploadValueFile({
+  fileName: "aws-ebs-csi-driver",
+  json: {
+    "aws-ebs-csi-driver": {
+      controller: {
+        serviceAccount: {
+          annotations: {
+            "eks.amazonaws.com/role-arn": role.arn,
           },
         },
       },
     },
-  });
+  },
 });

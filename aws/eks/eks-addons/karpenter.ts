@@ -48,30 +48,28 @@ export const role = createIRSARole(
   ]
 );
 
-role.arn.apply(arn => {
-  uploadValueFile({
-    fileName: "karpenter",
-    json: {
-      karpenter: {
-        settings: {
-          clusterName: environment,
-        },
-        serviceAccount: {
-          name: "karpenter-sa",
-          annotations: {
-            "eks.amazonaws.com/role-arn": arn,
-          },
-        },
-        defaultProvisioner: {
-          requirements: [
-            {
-              key: "node.kubernetes.io/instance-type",
-              operator: "In",
-              values: ["t3.medium", "t3.large"],
-            },
-          ],
+uploadValueFile({
+  fileName: "karpenter",
+  json: {
+    karpenter: {
+      settings: {
+        clusterName: environment,
+      },
+      serviceAccount: {
+        name: "karpenter-sa",
+        annotations: {
+          "eks.amazonaws.com/role-arn": role.arn,
         },
       },
+      defaultProvisioner: {
+        requirements: [
+          {
+            key: "node.kubernetes.io/instance-type",
+            operator: "In",
+            values: ["t3.medium", "t3.large"],
+          },
+        ],
+      },
     },
-  });
+  },
 });

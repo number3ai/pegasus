@@ -38,20 +38,18 @@ const role = createIRSARole(
   ]
 );
 
-role.arn.apply(arn => {
-  uploadValueFile({
-    fileName: "aws-load-balancer-controller",
-    json: {
-      "aws-load-balancer-controller": {
-        clusterName: environment,
-        region: region,
-        serviceAccount: {
-          annotations: {
-            "eks.amazonaws.com/role-arn": arn,
-          },
+uploadValueFile({
+  fileName: "aws-load-balancer-controller",
+  json: {
+    "aws-load-balancer-controller": {
+      clusterName: environment,
+      region: region,
+      serviceAccount: {
+        annotations: {
+          "eks.amazonaws.com/role-arn": role.arn,
         },
-        vpcId: eksVpc.vpcId,
       },
+      vpcId: eksVpc.vpcId,
     },
-  });
+  },
 });
