@@ -1,7 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 
 import { argoCdPrFiles } from "./argocd";
-import { createGitPR } from "./helpers/git";
+import { processGitPrFiles, uploadValuesFile } from "./helpers/git";
 
 const eksAddonsPrFilesPromises = [
   "amazon-cloudwatch-observability",
@@ -12,7 +12,7 @@ const eksAddonsPrFilesPromises = [
   "karpenter",
 ].map(addon => 
   import(`./eks-addons/${addon}`)
-    .then(module => module.role?.arn ? module.role.arn.apply(() => module.valueFile) : module.valueFile)
+    .then(module => module.role?.arn ? module.role.arn.apply(() => processGitPrFiles([module.valueFile])) : processGitPrFiles([module.valueFile]))
     .catch(error => {
       console.error(`Failed to import ${addon}:`, error);
       return []; // Return an empty array in case of error
@@ -23,7 +23,7 @@ pulumi.all([
   Promise.all(eksAddonsPrFilesPromises),
   argoCdPrFiles
 ]).apply(([resolvedEksAddonsPrFiles, resolvedArgoCdPrFiles]) => {
-  createGitPR("automated-devops-dynamic-helm-values", [
+  uploadValuesFile([
       ...resolvedArgoCdPrFiles,
       ...resolvedEksAddonsPrFiles.flat() // Flatten the array in case of nested arrays
   ]);

@@ -21,23 +21,9 @@ export function processGitPrFiles(gitPrFiles: Array<GitFileMap>): Array<GitFileM
 }
 
 // Create a GitHub Pull Request with a branch and a set of files
-export async function createGitPR(branchName: string, files: Array<GitFileMap>) {
-  // Create a new branch in the repository
-  const branch = new github.Branch(
-    "git-branch",
-    {
-      repository: githubRepository,
-      branch: branchName,
-    },
-    {
-      deleteBeforeReplace: true, // Ensure the branch is removed from the state file after creation
-      provider: githubProvider,
-    }
-  );
-
-
+export async function uploadValuesFile(files: Array<GitFileMap>) {
   // Create an array of RepositoryFile promises
-  const filePromises = files.map((file) => {
+  files.map((file) => {
     const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
 
     // Add or overwrite a file in the specified branch
@@ -60,24 +46,5 @@ export async function createGitPR(branchName: string, files: Array<GitFileMap>) 
       }
     ).id; // Return the resource ID to handle promises
   });
-
-  // Use Pulumi's all() to wait for all file commits to complete
-  // pulumi.all(filePromises).apply(() => {
-  //   // Create a pull request from the branch to the main branch
-  //   return new github.RepositoryPullRequest(
-  //     "git-pr",
-  //     {
-  //       baseRef: "main",
-  //       baseRepository: githubRepository,
-  //       body: "This PR was created automatically by the pegasus bot.",
-  //       headRef: branch.branch,
-  //       title: "Automated PR for release pipeline",
-  //     },
-  //     {
-  //       deleteBeforeReplace: true, // Ensure the pr is removed from the state file after creation
-  //       provider: githubProvider,
-  //     }
-  //   );
-  // });
 }
 
