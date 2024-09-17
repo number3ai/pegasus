@@ -91,7 +91,8 @@ export function createIRSARole(
       }
     );
   }
-
-  if (service === "grafana") {pulumi.log.info(`${service}: ARN is ${irsaRole.arn.apply(a => a)}`);}
+  irsaRole.arn.apply(a => {
+  if (service === "grafana") {pulumi.log.info(`${service}: ARN is ${a})}`);}
+  });
   return irsaRole.arn; // Return the role's ARN as a pulumi.Output
 }
