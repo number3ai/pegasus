@@ -3,39 +3,28 @@ import * as pulumi from "@pulumi/pulumi";
 import { argoCdPrFiles } from "./argocd";
 import { createGitPR } from "./helpers/git";
 
-const eksAddonsPrFiles: any = [];
-
-[
+const eksAddonsPrFilesPromises = [
   "amazon-cloudwatch-observability",
   "aws-load-balancer-controller",
   "ebs-csi-driver",
   "grafana",
   "ingress-nginx",
   "karpenter",
-].forEach( addon => {
-  import(`./eks-addons/${addon}`);
-  import(`./eks-addons/${addon}`).then( module => {
-    try {
-      eksAddonsPrFiles.push(module.role.arn.apply(() => module.valueFile));
-    } catch (error) {
-      eksAddonsPrFiles.push(module.valueFile);
-    }
-  });
-});
+].map(addon => 
+  import(`./eks-addons/${addon}`)
+    .then(module => module.role?.arn ? module.role.arn.apply(() => module.valueFile) : module.valueFile)
+    .catch(error => {
+      console.error(`Failed to import ${addon}:`, error);
+      return []; // Return an empty array in case of error
+    })
+);
 
-// Resolve all Pulumi Outputs (argoCdPrFiles and eksAddonsPrFiles) before creating the PR
 pulumi.all([
-  eksAddonsPrFiles,
+  Promise.all(eksAddonsPrFilesPromises),
   argoCdPrFiles
-]).apply(([
-  resolvedEksAddonsPrFiles, 
-  resolvedArgoCdPrFiles
-]) => {
-  // Now that the Output values are resolved, you can safely spread them into a single array
-  createGitPR("automated-devops-dynamic-helm-values", // Unique branch name based on the current timestamp
-              [
-                  ...resolvedArgoCdPrFiles, // Spread the resolved ArgoCD PR files
-                  ...resolvedEksAddonsPrFiles, // Spread the resolved EKS Add-ons PR files
-              ],
-  );
+]).apply(([resolvedEksAddonsPrFiles, resolvedArgoCdPrFiles]) => {
+  createGitPR("automated-devops-dynamic-helm-values", [
+      ...resolvedArgoCdPrFiles,
+      ...resolvedEksAddonsPrFiles.flat() // Flatten the array in case of nested arrays
+  ]);
 });
