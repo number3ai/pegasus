@@ -27,7 +27,7 @@ export function createIRSARole(
   awsPolicies: string[] = [],
   customPolicies: Array<CustomPolicy> = []
 ): aws.iam.Role {
-  pulumi.log.info(`Creating IRSA Role for ${service}`);
+  pulumi.log.info(`${service}: Creating IRSA Role`);
   const irsaRoleName = `${service}-sa`; // Define the IAM Role name for the service account
 
   const irsaRole = new aws.iam.Role(
@@ -73,7 +73,6 @@ export function createIRSARole(
     }
   );
 
-  pulumi.log.info(`IRSA Role for ${service} created`);
   // Attach predefined AWS policies to the IAM Role
   awsPolicies.forEach((policy, index) => {
     pulumi.log.info(`${service}: Attaching policies to IRSA Role for ${policy}`);

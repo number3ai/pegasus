@@ -58,7 +58,7 @@ new aws.secretsmanager.SecretVersion(
   }
 );
 
-pulumi.log.info(`Grafana IRSA Started`);
+pulumi.log.info(`----------Grafana IRSA Started----------`);
 createIRSARole(
   "grafana",
   "monitoring",
