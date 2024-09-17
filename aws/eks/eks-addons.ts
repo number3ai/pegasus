@@ -548,7 +548,7 @@ export const eksAddonsPrFiles = pulumi
             },
           },
           serviceAccount: {
-            labels: {
+            annotations: {
               "eks.amazonaws.com/role-arn": grafanaIrsaRole.arn,
             },
           },
