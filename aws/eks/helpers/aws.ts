@@ -2,7 +2,7 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
 import { cluster } from "../eks";
-import { tags } from "../variables";
+import { eksClusterName, tags } from "../variables";
 
 export type CustomPolicy = {
   actions: string[];
@@ -49,7 +49,7 @@ export function createIRSARole(
       tags: {
         ...tags, // Apply default tags
         ...{
-          cluster: cluster.eksCluster.name, // Tag with EKS cluster name
+          cluster: eksClusterName, // Tag with EKS cluster name
           service: service, // Tag with service name
           namespace: namespace, // Tag with namespace name
         },

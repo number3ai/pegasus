@@ -3,7 +3,7 @@ import * as random from "@pulumi/random";
 
 import { cluster } from "../eks";
 import { awsProvider } from "../providers";
-import { region, tags } from "../variables";
+import { eksClusterName, region, tags } from "../variables";
 import { createIRSARole } from "../helpers/aws";
 import { processGitPrFiles } from "../helpers/git";
 
@@ -26,7 +26,7 @@ const grafanaAdminPassword = new random.RandomPassword(
 const grafanaAdminSecret = new aws.secretsmanager.Secret(
   "grafana-secret",
   {
-    name: `${cluster.eksCluster.name}/grafana/credentials`, // Secret name in Secrets Manager
+    name: `${eksClusterName}/grafana/credentials`, // Secret name in Secrets Manager
     description: "Grafana admin credentials", // Secret description
     recoveryWindowInDays: 0, // No recovery window for secret deletion
     tags: {
