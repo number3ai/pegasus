@@ -14,8 +14,7 @@ export function createIRSARole(
   namespace: string,
   awsPolicies: string[] = [],
   customPolicies: Array<CustomPolicy> = []
-): pulumi.Output<string> { // Change return type to pulumi.Output<string>
-  if (service === "grafana") {pulumi.log.info(`${service}: Creating IRSA Role`);}
+): pulumi.Output<string> { 
   const irsaRoleName = `${service}-sa`;
 
   const irsaRole = new aws.iam.Role(
@@ -61,8 +60,6 @@ export function createIRSARole(
 
   // Attach AWS policies
   awsPolicies.forEach((policy, index) => {
-
-    if (service === "grafana") {pulumi.log.info(`${service}: Attaching Role`);}
     new aws.iam.RolePolicyAttachment(
       `policy-${service}-attachment-${index}`,
       {
@@ -73,9 +70,7 @@ export function createIRSARole(
   });
 
   // Attach custom policies
-  if (customPolicies.length > 0) {
-    
-    if (service === "grafana") {pulumi.log.info(`${service}: Custom Policy`);}
+  if (customPolicies.length > 0) {    
     new aws.iam.RolePolicy(
       `policy-attachment-${service}-custom-policy`,
       {
@@ -91,8 +86,6 @@ export function createIRSARole(
       }
     );
   }
-  irsaRole.arn.apply(a => {
-  if (service === "grafana") {pulumi.log.info(`${service}: ARN is ${a})}`);}
-  });
+
   return irsaRole.arn; // Return the role's ARN as a pulumi.Output
 }
