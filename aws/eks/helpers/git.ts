@@ -12,14 +12,13 @@ export type GitFileMap = {
 
 // Create a GitHub Pull Request with a branch and a set of files
 export function uploadValueFile(file: GitFileMap) {
-  // Create an array of RepositoryFile promises
+  // Create an array of RepositoryFile promises 
   const filePath = `releases/${environment}/${file.fileName}.generated.yaml`;
 
   // Add or overwrite a file in the specified branch
   return new github.RepositoryFile(
     `${filePath.replace("/", "-")}-git`,
     {
-      // branch: branch.branch,
       branch: "main",
       commitAuthor: "Pulumi Bot",
       commitEmail: "bot@pulumi.com",

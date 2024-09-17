@@ -60,7 +60,7 @@ new aws.secretsmanager.SecretVersion(
 createIRSARole(
   "grafana",
   "monitoring",
-  ["arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"],
+  ["arn:aws:iam::aws:policy/CloudWatchFullAccess"],
   []
 ).arn.apply(arn => {
   uploadValueFile({
