@@ -3,7 +3,7 @@ import { environment, region } from "../variables";
 import { createIRSARole } from "../helpers/aws";
 import { uploadValueFile } from "../helpers/git";
 
-const role = createIRSARole(
+createIRSARole(
   "aws-load-balancer-controller",
   "kube-system",
   [],
@@ -36,20 +36,20 @@ const role = createIRSARole(
       resources: ["arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"],
     },
   ]
-);
-
-uploadValueFile({
-  fileName: "aws-load-balancer-controller",
-  json: {
-    "aws-load-balancer-controller": {
-      clusterName: environment,
-      region: region,
-      serviceAccount: {
-        annotations: {
-          "eks.amazonaws.com/role-arn": role.arn.get(),
+).arn.apply(arn => {
+  uploadValueFile({
+    fileName: "aws-load-balancer-controller",
+    json: {
+      "aws-load-balancer-controller": {
+        clusterName: environment,
+        region: region,
+        serviceAccount: {
+          annotations: {
+            "eks.amazonaws.com/role-arn": arn,
+          },
         },
+        vpcId: eksVpc.vpcId,
       },
-      vpcId: eksVpc.vpcId,
     },
-  },
+  });
 });

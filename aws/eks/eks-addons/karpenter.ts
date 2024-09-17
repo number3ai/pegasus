@@ -2,7 +2,7 @@ import { accountId, environment, region } from "../variables";
 import { createIRSARole } from "../helpers/aws";
 import { uploadValueFile } from "../helpers/git";
 
-export const role = createIRSARole(
+createIRSARole(
   "karpenter",
   "kube-system",
   [],
@@ -46,30 +46,30 @@ export const role = createIRSARole(
       ],
     },
   ]
-);
-
-uploadValueFile({
-  fileName: "karpenter",
-  json: {
-    karpenter: {
-      settings: {
-        clusterName: environment,
-      },
-      serviceAccount: {
-        name: "karpenter-sa",
-        annotations: {
-          "eks.amazonaws.com/role-arn": role.arn.get(),
+).arn.apply(arn => {
+  uploadValueFile({
+    fileName: "karpenter",
+    json: {
+      karpenter: {
+        settings: {
+          clusterName: environment,
+        },
+        serviceAccount: {
+          name: "karpenter-sa",
+          annotations: {
+            "eks.amazonaws.com/role-arn": arn,
+          },
+        },
+        defaultProvisioner: {
+          requirements: [
+            {
+              key: "node.kubernetes.io/instance-type",
+              operator: "In",
+              values: ["t3.medium", "t3.large"],
+            },
+          ],
         },
       },
-      defaultProvisioner: {
-        requirements: [
-          {
-            key: "node.kubernetes.io/instance-type",
-            operator: "In",
-            values: ["t3.medium", "t3.large"],
-          },
-        ],
-      },
     },
-  },
+  });
 });

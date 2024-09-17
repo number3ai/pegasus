@@ -57,53 +57,53 @@ new aws.secretsmanager.SecretVersion(
   }
 );
 
-export const role = createIRSARole(
+createIRSARole(
   "grafana",
   "monitoring",
   ["arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"],
   []
-);
-
-uploadValueFile({
-  fileName: "grafana",
-  json: {
-    grafana: {
-      datasources: {
-        "datasources.yaml": {
-          apiVersion: 1,
-          datasources: [
-            {
-              name: "Prometheus",
-              type: "prometheus",
-              access: "proxy",
-              url: "http://prometheus.monitoring.svc.cluster.local",
-              isDefault: true,
-              editable: false,
-            },
-            {
-              name: "CloudWatch",
-              type: "cloudwatch",
-              access: "proxy",
-              uid: "cloudwatch",
-              editable: false,
-              jsonData: {
-                authType: "default",
-                defaultRegion: region,
+).arn.apply(arn => {
+  uploadValueFile({
+    fileName: "grafana",
+    json: {
+      grafana: {
+        datasources: {
+          "datasources.yaml": {
+            apiVersion: 1,
+            datasources: [
+              {
+                name: "Prometheus",
+                type: "prometheus",
+                access: "proxy",
+                url: "http://prometheus.monitoring.svc.cluster.local",
+                isDefault: true,
+                editable: false,
               },
-            },
-          ],
+              {
+                name: "CloudWatch",
+                type: "cloudwatch",
+                access: "proxy",
+                uid: "cloudwatch",
+                editable: false,
+                jsonData: {
+                  authType: "default",
+                  defaultRegion: region,
+                },
+              },
+            ],
+          },
         },
-      },
-      serviceAccount: {
-        annotations: {
-          "eks.amazonaws.com/role-arn": role.arn.get(),
+        serviceAccount: {
+          annotations: {
+            "eks.amazonaws.com/role-arn": arn,
+          },
         },
+        // admin: {
+        //   existingSecret: "grafana-credentials",
+        //   userKey: "username",
+        //   passwordKey: "password",
+        // },
       },
-      // admin: {
-      //   existingSecret: "grafana-credentials",
-      //   userKey: "username",
-      //   passwordKey: "password",
-      // },
     },
-  },
+  });
 });
