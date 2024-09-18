@@ -63,7 +63,7 @@ const secret = new aws.secretsmanager.Secret(
     name: `${eksClusterName}/argocd/credentials`, // Secret name in Secrets Manager
     description: "ArgoCD admin credentials", // Secret description
     recoveryWindowInDays: 0, // No recovery window for secret deletion
-    tags, // Add predefined tags to the secret
+    tags: tags, // Add predefined tags to the secret
   },
   {
     provider: awsProvider, // Use AWS provider
@@ -100,7 +100,7 @@ export const argocd = new kubernetes.helm.v3.Release(
       repo: "https://argoproj.github.io/argo-helm", // Helm chart repository URL
     },
     values: {
-      environment, // Add environment-specific labels
+      environment: environment, // Add environment-specific labels
       configs: {
         params: {
           "server.insecure": true, // Enable insecure mode for ArgoCD server
@@ -203,7 +203,7 @@ githubBootloaders.map((key) => {
           [`app-of-apps-${key}`]: {
             namespace: "argocd", // Target namespace for application
             additionalLabels: {
-              environment, // Add environment-specific labels
+              environment: environment, // Add environment-specific labels
             },
             project: "default", // Default ArgoCD project
             finalizers: [
@@ -247,7 +247,7 @@ githubBootloaders.map((key) => {
   uploadValueFile({
     fileName: `app-of-apps-${key}`,
     json: {
-      environment,
+      environment: environment,
     },
   });
 });
