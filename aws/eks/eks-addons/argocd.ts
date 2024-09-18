@@ -75,8 +75,8 @@ new aws.secretsmanager.SecretVersion(
   "argocd-secret-version",
   {
     secretId: secret.id, // Secret ID reference
-    secretString: argoAdminPassword.result.apply(
-      (password) => JSON.stringify({ password, username: "admin" }) // Store password and admin username
+    secretString: argoAdminPassword.result.apply((password) =>
+      JSON.stringify({ password, username: "admin" }) // Store password and admin username
     ),
   },
   {
@@ -120,7 +120,7 @@ export const argocd = new kubernetes.helm.v3.Release(
         ingress: {
           enabled: true, // Enable ingress for ArgoCD
           annotations: {
-            ["kubernetes.io/ingress.class"]: "nginx", // Use nginx ingress class
+            "kubernetes.io/ingress.class": "nginx", // Use nginx ingress class
           },
           hostname: `argocd.${dnsPublicDomain}`, // Ingress hostname
         },
@@ -147,29 +147,34 @@ export const argocd = new kubernetes.helm.v3.Release(
               },
               annotations: {
                 summary: "[Argo CD] No reported applications",
-                description: "Argo CD has not reported any applications data for the past 15 minutes which means that it must be down or not functioning properly.  This needs to be resolved for this cloud to continue to maintain state.",
+                description:
+                  "Argo CD has not reported any applications data for the past 15 minutes which means that it must be down or not functioning properly. This needs to be resolved for this cloud to continue to maintain state.",
               },
-            }, {
+            },
+            {
               alert: "ArgoAppNotSynced",
-              expr: "argocd_app_info{sync_status!=\"Synced\"} == 1",
+              expr: 'argocd_app_info{sync_status!="Synced"} == 1',
               for: "12h",
               labels: {
                 severity: "warning",
               },
               annotations: {
                 summary: "[{{`{{$labels.name}}`}}] Application not synchronized",
-                description: "The application [{{`{{$labels.name}}`}}] has not been synchronized for over 12 hours which means that the state of this cloud has drifted away from the state inside Git.",
+                description:
+                  "The application [{{`{{$labels.name}}`}}] has not been synchronized for over 12 hours which means that the state of this cloud has drifted away from the state inside Git.",
               },
-            }, {
+            },
+            {
               alert: "ArgocdServiceUnhealthy",
-              expr: "argocd_app_info{health_status!=\"Healthy\"} != 0",
+              expr: 'argocd_app_info{health_status!="Healthy"} != 0',
               for: "15m",
               labels: {
                 severity: "warning",
               },
               annotations: {
                 summary: "ArgoCD service unhealthy (instance {{ $labels.instance }})",
-                description: "Service {{ $labels.name }} run by argo is currently not healthy.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+                description:
+                  "Service {{ $labels.name }} run by argo is currently not healthy.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}",
               },
             },
           ],
@@ -214,7 +219,7 @@ githubBootloaders.map((key) => {
                   valueFiles: [
                     `values-${key}.yaml`, // Environment-specific values file
                     `/releases/${environment}/app-of-apps-${key}.generated.yaml`, // Environment-specific values file
-                    `/releases/${environment}/app-of-apps-${key}.yaml` // Environment-specific values file
+                    `/releases/${environment}/app-of-apps-${key}.yaml`, // Environment-specific values file
                   ],
                 },
               },
