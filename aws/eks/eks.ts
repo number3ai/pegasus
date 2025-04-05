@@ -73,6 +73,5 @@ export const cluster = new eks.Cluster(`${eksClusterName}-cluster`, {
 //     "karpenter.sh/discovery": eksClusterName, // Custom tag for Karpenter discovery
 //   },
 // });
-
 // Export the kubeconfig for the EKS cluster
 export const kubeconfig = cluster.kubeconfig.apply(JSON.stringify);
