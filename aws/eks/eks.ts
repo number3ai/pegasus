@@ -28,7 +28,7 @@ export const cluster = new eks.Cluster(`${eksClusterName}-cluster`, {
     "scheduler",
   ], // Enable cluster logging for key components
   endpointPublicAccess: true, // Enable public access to the EKS API endpoint
-  endpointPrivateAccess: true, // Enable public access to the EKS API endpoint
+  endpointPrivateAccess: true, // Enable private access to the EKS API endpoint
   publicAccessCidrs: eksPublicAccess, // List of CIDR blocks for public access to the EKS API
   instanceRoles: instanceRoles, // Attach the created instance roles to the cluster
   name: eksClusterName, // Name of the EKS cluster
