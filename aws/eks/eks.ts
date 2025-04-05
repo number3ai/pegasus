@@ -16,6 +16,9 @@ import {
 
 // Create an EKS cluster with custom configurations
 export const cluster = new eks.Cluster(`${eksClusterName}-cluster`, {
+  autoMode: {
+    enabled: true, // Enable auto mode for the cluster
+  },
   createOidcProvider: true, // Enable OIDC provider for IAM roles for service accounts (IRSA)
   enabledClusterLogTypes: [
     "api",
@@ -50,26 +53,26 @@ export const cluster = new eks.Cluster(`${eksClusterName}-cluster`, {
   vpcId: eksVpc.vpcId, // Use the VPC created for the EKS cluster
 });
 
-// Create an EKS managed node group
-eks.createManagedNodeGroup(`${eksClusterName}-node-group`, {
-  cluster: cluster, // Associate the node group with the created EKS cluster
-  enableIMDSv2: true, // Enable Instance Metadata Service version 2 (IMDSv2)
-  instanceTypes: [instanceType], // Specify the EC2 instance types for the worker nodes
-  labels: {
-    ondemand: "true", // Label the node group as on-demand nodes
-  },
-  nodeGroupName: `${eksClusterName}-nodegroup`, // Name of the node group
-  nodeRoleArn: cluster.instanceRoles[0].arn, // Use the first instance role created earlier
-  scalingConfig: {
-    desiredSize: desiredSize, // Desired number of worker nodes
-    maxSize: maxSize, // Maximum number of worker nodes
-    minSize: minSize, // Minimum number of worker nodes
-  },
-  tags: { 
-    ...tags, // Attach default tags to the node group
-    "karpenter.sh/discovery": eksClusterName, // Custom tag for Karpenter discovery
-  },
-});
+// // Create an EKS managed node group
+// eks.createManagedNodeGroup(`${eksClusterName}-node-group`, {
+//   cluster: cluster, // Associate the node group with the created EKS cluster
+//   enableIMDSv2: true, // Enable Instance Metadata Service version 2 (IMDSv2)
+//   instanceTypes: [instanceType], // Specify the EC2 instance types for the worker nodes
+//   labels: {
+//     ondemand: "true", // Label the node group as on-demand nodes
+//   },
+//   nodeGroupName: `${eksClusterName}-nodegroup`, // Name of the node group
+//   nodeRoleArn: cluster.instanceRoles[0].arn, // Use the first instance role created earlier
+//   scalingConfig: {
+//     desiredSize: desiredSize, // Desired number of worker nodes
+//     maxSize: maxSize, // Maximum number of worker nodes
+//     minSize: minSize, // Minimum number of worker nodes
+//   },
+//   tags: { 
+//     ...tags, // Attach default tags to the node group
+//     "karpenter.sh/discovery": eksClusterName, // Custom tag for Karpenter discovery
+//   },
+// });
 
 // Export the kubeconfig for the EKS cluster
 export const kubeconfig = cluster.kubeconfig.apply(JSON.stringify);
