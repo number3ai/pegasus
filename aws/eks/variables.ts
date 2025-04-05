@@ -17,6 +17,7 @@ export const dnsPrivateDomain = "int.playground.com";
 export const eksVersion = "1.32";
 export const eksClusterName = "dev";
 export const eksNodeRootVolumeSize = 200;
+export const eksPublicAccess = [ "0.0.0.0/0" ];
 export const eksVPCCIDRBlock = "10.100.0.0/16";
 
 // EKS Node Group Configuration

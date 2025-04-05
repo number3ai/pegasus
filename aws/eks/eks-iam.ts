@@ -2,6 +2,13 @@ import * as aws from "@pulumi/aws"; // Import AWS resources from Pulumi
 
 import { awsProvider } from "./providers"; // Import AWS provider configuration
 import { accountId } from "./variables"; // Import the AWS account ID from the variables file
+import { eksClusterName } from "./variables"; // Import the EKS cluster name from the variables file
+
+// Create IAM roles for EKS worker nodes
+export const instanceRoles = createRoles(
+  `${eksClusterName}-instance-role`, // Base name for the roles
+  3 // Create 3 instance roles for the EKS node group
+);
 
 // Define the policy document for EC2 volume management
 const ec2CreateVolumePolicyDocument = {
