@@ -3,14 +3,10 @@ import * as eks from "@pulumi/eks"; // Import Pulumi EKS module for managing Ama
 import { eksVpc } from "./networking"; // Import the VPC created for the EKS cluster
 import { instanceRoles } from "./eks-iam"; // Import the IAM roles for EKS worker nodes
 import {
-  desiredSize, // Desired number of nodes in the node group
   eksClusterName, // Name of the EKS cluster
   eksNodeRootVolumeSize, // Size of the EBS root volume attached to the EKS nodes
   eksPublicAccess, // CIDR blocks for public access to the EKS API
   eksVersion, // EKS Kubernetes version
-  instanceType, // EC2 instance type for the worker nodes
-  minSize, // Minimum number of worker nodes
-  maxSize, // Maximum number of worker nodes
   tags, // Tags to attach to AWS resources
 } from "./variables"; // Import variables from the variables file
 

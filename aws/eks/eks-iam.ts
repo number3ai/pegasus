@@ -37,15 +37,6 @@ const ec2CreateVolumePolicy = new aws.iam.Policy("ec2CreateVolumePolicy", {
     provider: awsProvider,
 });
 
-// List of managed IAM policies to attach to the EKS worker node role
-const managedPolicyArns: string[] = [
-  "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-  "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-  "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-  "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
-  `arn:aws:iam::${accountId}:policy/EC2CreateVolumePolicy`,
-];
-
 // Creates an IAM role and attaches the specified managed policies
 export function createRole(name: string): aws.iam.Role {
   // Define the IAM Role with the 'ec2.amazonaws.com' service principal
@@ -56,6 +47,14 @@ export function createRole(name: string): aws.iam.Role {
   }, {
     provider: awsProvider,
   });
+
+  const managedPolicyArns: string[] = [
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+    `arn:aws:iam::${accountId}:policy/EC2CreateVolumePolicy`,
+  ];
 
   // Attach each managed policy to the role
   managedPolicyArns.forEach((policy, index) => {
