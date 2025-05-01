@@ -57,7 +57,7 @@ export const cluster = new eks.Cluster(`${eksClusterName}-cluster`, {
 //   labels: {
 //     ondemand: "true", // Label the node group as on-demand nodes
 //   },
-//   nodeGroupName: `${eksClusterName}-nodegroup`, // Name of the node group
+//   nodeGroupNamePrefix: `${eksClusterName}-nodegroup-`, // Prefix name of the node group
 //   nodeRoleArn: cluster.instanceRoles[0].arn, // Use the first instance role created earlier
 //   scalingConfig: {
 //     desiredSize: desiredSize, // Desired number of worker nodes
