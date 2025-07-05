@@ -1,0 +1,10 @@
+name: eks
+description: EKS for training
+runtime:
+  name: nodejs
+  options:
+    packagemanager: npm
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: aws-typescript

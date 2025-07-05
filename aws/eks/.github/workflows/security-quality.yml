@@ -1,0 +1,170 @@
+name: Security and Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security checks daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  NODE_VERSION: '18'
+  TRIVY_VERSION: '0.48.0'
+
+jobs:
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm security audit
+        run: npm run security:audit
+
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+
+      - name: Run Trivy vulnerability scanner
+        run: trivy fs --security-checks vuln,config,secret --exit-code 1 --severity HIGH,CRITICAL .
+
+      - name: Run Trivy filesystem scan
+        run: trivy fs --security-checks vuln,config,secret --format table --output trivy-results.txt .
+
+      - name: Upload Trivy scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-scan-results
+          path: trivy-results.txt
+
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check code formatting
+        run: npm run format:check
+
+      - name: TypeScript validation
+        run: npm run validate
+
+      - name: Build project
+        run: npm run build
+
+  dependency-check:
+    name: Dependency Management
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for outdated dependencies
+        run: npm run deps:check
+
+      - name: Run dependency audit
+        run: npm run deps:audit
+
+  build-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    needs: [security, quality]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build project
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: bin/
+
+  security-report:
+    name: Security Report
+    runs-on: ubuntu-latest
+    needs: [security, quality, dependency-check]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Trivy results
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-scan-results
+
+      - name: Generate security report
+        run: |
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-results.txt ]; then
+            echo "### Trivy Scan Results" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat trivy-results.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No Trivy results found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [security, quality, dependency-check, build-test]
+    if: failure()
+    steps:
+      - name: Notify security team
+        run: |
+          echo "Security or quality checks failed!"
+          echo "Please review the logs and fix any issues."
+          # Add your notification logic here (Slack, email, etc.) 

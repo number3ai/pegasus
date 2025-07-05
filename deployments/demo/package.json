@@ -1,0 +1,54 @@
+{
+  "name": "pegasus-demo",
+  "version": "1.0.0",
+  "description": "Demo deployment of Pegasus EKS infrastructure",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf bin/",
+    "preview": "pulumi preview",
+    "up": "pulumi up",
+    "down": "pulumi destroy",
+    "refresh": "pulumi refresh",
+    "export": "pulumi stack export",
+    "import": "pulumi stack import",
+    "logs": "pulumi logs",
+    "config": "pulumi config",
+    "stack": "pulumi stack",
+    "validate": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write src/**/*.ts",
+    "format:check": "prettier --check src/**/*.ts",
+    "test": "echo \"No tests specified\" && exit 0",
+    "postinstall": "npm run validate"
+  },
+  "keywords": [
+    "aws",
+    "eks",
+    "kubernetes",
+    "pulumi",
+    "infrastructure",
+    "demo"
+  ],
+  "author": "Pegasus Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3.160.0",
+    "@pulumi/aws": "^6.75.0",
+    "@pulumi/awsx": "^2.21.1",
+    "@pulumi/eks": "^3.8.1",
+    "@pulumi/github": "^6.7.0",
+    "@pulumi/kubernetes": "^4.0.0",
+    "@pulumi/random": "^4.18.0",
+    "@pulumi/tls": "^5.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+} 

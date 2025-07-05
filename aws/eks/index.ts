@@ -1,4 +1,7 @@
-import "./providers"; // Import and execute the providers configuration
-import "./dns"; // Import and execute the DNS configuration
-import "./eks"; // Import and execute the EKS setup
-import "./eks-addons"; // Import and execute the EKS addons configuration
+/**
+ * Pegasus EKS Infrastructure
+ * Main entry point for the Pegasus EKS infrastructure platform
+ */
+
+// Import the main infrastructure from the src directory
+export * from "./src";
