@@ -26,13 +26,13 @@ import {
  */
 export interface EKSModuleConfig {
   /** Environment name (dev, staging, prod) */
-  environment: string;
+  environment?: string;
   
   /** AWS Account ID */
   accountId: string;
   
   /** AWS Region for all resources */
-  region: string;
+  region?: string;
   
   /** EKS cluster name */
   clusterName?: string;
@@ -76,6 +76,27 @@ export interface EKSModuleConfig {
   /** Tags for all resources */
   tags?: Record<string, string>;
 }
+
+/**
+ * Default configuration values
+ */
+const DEFAULT_CONFIG = {
+  environment: 'dev',
+  region: 'us-east-1',
+  kubernetesVersion: '1.32',
+  vpcCidr: '10.0.0.0/8',
+  nodeGroup: {
+    minSize: 3,
+    maxSize: 10,
+    desiredSize: 4,
+    instanceType: 't3.medium',
+    rootVolumeSize: 100,
+  },
+  argocd: {
+    version: '7.8.23',
+    enabled: true,
+  },
+} as const;
 
 /**
  * EKS Module Output Interface
@@ -128,12 +149,15 @@ export class EKSModule extends pulumi.ComponentResource {
   ) {
     super("pegasus:eks:EKSModule", name, config, opts);
 
+    // Merge user config with defaults
+    const mergedConfig = this.mergeConfigWithDefaults(config);
+
     // Create Kubernetes provider
     const k8sProvider = createKubernetesProvider(cluster);
 
     // Deploy ArgoCD if enabled
     let argocdOutputs: any = undefined;
-    if (config.argocd?.enabled !== false) {
+    if (mergedConfig.argocd?.enabled !== false) {
       argocdOutputs = deployArgoCD(k8sProvider);
     }
 
@@ -171,6 +195,49 @@ export class EKSModule extends pulumi.ComponentResource {
   }
 
   /**
+   * Merge user configuration with defaults
+   */
+  private mergeConfigWithDefaults(userConfig: EKSModuleConfig): EKSModuleConfig {
+    // Get the parent folder name for cluster name derivation
+    const parentFolderName = this.getParentFolderName();
+    
+    // Determine environment and cluster name
+    const environment = userConfig.environment || DEFAULT_CONFIG.environment;
+    const clusterName = userConfig.clusterName || `${parentFolderName}-cluster`;
+    
+    return {
+      ...DEFAULT_CONFIG,
+      ...userConfig,
+      environment,
+      clusterName,
+      nodeGroup: {
+        ...DEFAULT_CONFIG.nodeGroup,
+        ...userConfig.nodeGroup,
+      },
+      argocd: {
+        ...DEFAULT_CONFIG.argocd,
+        ...userConfig.argocd,
+      },
+    };
+  }
+
+  /**
+   * Get the parent folder name from the current working directory
+   */
+  private getParentFolderName(): string {
+    try {
+      const path = require('path');
+      const process = require('process');
+      const cwd = process.cwd();
+      const parentFolder = path.basename(path.dirname(cwd));
+      return parentFolder;
+    } catch (error) {
+      // Fallback to 'dev' if we can't determine the folder name
+      return 'dev';
+    }
+  }
+
+  /**
    * Get cluster information for external use
    */
   public getClusterInfo() {
@@ -204,13 +271,13 @@ export class EKSModule extends pulumi.ComponentResource {
  */
 export function createSimpleEKS(
   name: string,
-  environment: string,
+  environment?: string,
   opts?: pulumi.ComponentResourceOptions
 ): EKSModule {
   return new EKSModule(name, {
     environment,
     accountId: "783634644742", // Default account ID
-    region: "us-east-1", // Default region
+    // Uses module defaults for region, kubernetesVersion, vpcCidr, nodeGroup, argocd, clusterName
   }, opts);
 }
 
@@ -219,16 +286,12 @@ export function createSimpleEKS(
  */
 export function createProductionEKS(
   name: string,
-  environment: string,
-  config: Partial<EKSModuleConfig>,
+  config: Partial<EKSModuleConfig> = {},
   opts?: pulumi.ComponentResourceOptions
 ): EKSModule {
   return new EKSModule(name, {
-    environment,
     accountId: "783634644742",
-    region: "us-east-1",
-    kubernetesVersion: "1.32",
-    vpcCidr: "10.100.0.0/16",
+    // Uses module defaults for region, kubernetesVersion, vpcCidr, nodeGroup, argocd, clusterName, environment
     publicDomain: "playground.com",
     privateDomain: "int.playground.com",
     github: {
@@ -237,27 +300,12 @@ export function createProductionEKS(
       bootloaderPath: "charts/bootloader",
       bootloaders: ["infrastructure", "security"],
     },
-    nodeGroup: {
-      minSize: 4,
-      maxSize: 8,
-      desiredSize: 4,
-      instanceType: "t3.large",
-      rootVolumeSize: 200,
-    },
-    argocd: {
-      version: "7.8.23",
-      appsVersion: "2.0.2",
-      enabled: true,
-    },
     tags: {
-      Environment: environment,
+      Environment: "dev", // Will be overridden by config if provided
       ManagedBy: "Pulumi",
       Project: "Pegasus",
       Component: "EKS",
     },
     ...config,
   }, opts);
-}
-
-// Export types for external use
-export type { EKSModuleConfig, EKSModuleOutputs }; 
+} 

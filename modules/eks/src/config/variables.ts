@@ -99,6 +99,9 @@ export const ARGOCD_CONFIG = {
   
   /** ArgoCD Apps Helm chart version */
   APPS_VERSION: '2.0.2',
+  
+  /** Whether ArgoCD is enabled by default */
+  ENABLED: true,
 } as const;
 
 // ============================================================================

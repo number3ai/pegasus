@@ -56,11 +56,11 @@ export const NAMING_PATTERNS = {
 export const DEFAULTS = {
   PASSWORD_LENGTH: 24,
   RECOVERY_WINDOW_DAYS: 0,
-  VOLUME_SIZE_GB: 200,
-  NODE_MIN_SIZE: 4,
-  NODE_MAX_SIZE: 8,
+  VOLUME_SIZE_GB: 100,
+  NODE_MIN_SIZE: 3,
+  NODE_MAX_SIZE: 10,
   NODE_DESIRED_SIZE: 4,
-  INSTANCE_TYPE: 't3.large',
+  INSTANCE_TYPE: 't3.medium',
 } as const;
 
 // Security Policies
@@ -72,7 +72,7 @@ export const SECURITY_POLICIES = {
 
 // Network Configuration
 export const NETWORK = {
-  VPC_CIDR: '10.100.0.0/16',
+  VPC_CIDR: '10.0.0.0/8',
   PUBLIC_ACCESS_CIDR: ['0.0.0.0/0'],
   ENABLE_IPV6: false,
   ENABLE_DNS: true,

@@ -1,5 +1,5 @@
 name: pegasus-demo
-description: Demo deployment of Pegasus EKS infrastructure
+description: Demo deployment of Pegasus EKS infrastructure using the EKS module
 runtime:
   name: nodejs
   options:
@@ -9,4 +9,9 @@ config:
     value:
       pulumi:template: aws-typescript
       environment: demo
-      project: pegasus 
+      project: pegasus
+      type: deployment
+      component: eks
+      service: kubernetes
+      cloud: aws
+      architecture: infrastructure 

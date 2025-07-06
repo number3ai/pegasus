@@ -19,6 +19,11 @@ import { eksVpc, vpcExports } from "./core/networking";
 import { instanceRoles, instanceProfiles } from "./core/iam";
 import { wildcardCertificate, dnsExports } from "./core/dns";
 
+// Export core components for module use
+export { cluster, clusterExports };
+export { eksVpc, vpcExports };
+export { wildcardCertificate, dnsExports };
+
 // ============================================================================
 // KUBERNETES PROVIDER
 // ============================================================================
@@ -27,6 +32,9 @@ import { createKubernetesProvider } from "./providers/kubernetes";
 
 // Create Kubernetes provider after cluster is ready
 const k8sProvider = createKubernetesProvider(cluster);
+
+// Export Kubernetes provider for module use
+export { createKubernetesProvider };
 
 // ============================================================================
 // ADD-ONS (Deployed after cluster is ready)
@@ -38,6 +46,9 @@ import { deployArgoCD } from "./addons/argocd";
 // import { deployIngress } from "./addons/ingress";
 // import { deployStorage } from "./addons/storage";
 // import { deploySecrets } from "./addons/secrets";
+
+// Export ArgoCD function for module use
+export { deployArgoCD };
 
 // ============================================================================
 // DEPLOY ADD-ONS

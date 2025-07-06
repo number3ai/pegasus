@@ -14,14 +14,11 @@ import { EKSModule } from "../../modules/eks";
 
 const config = new pulumi.Config();
 
-// Demo configuration
+// Demo configuration - only specifying what differs from module defaults
 const demoConfig = {
-  environment: "demo",
+  environment: "demo", // Override default 'dev' environment
   accountId: "783634644742",
-  region: "us-east-1",
-  clusterName: "demo-cluster",
-  kubernetesVersion: "1.32",
-  vpcCidr: "10.100.0.0/16",
+  // clusterName: "demo-cluster", // Uses default: parent folder name + "-cluster"
   publicDomain: "demo.playground.com",
   privateDomain: "int.demo.playground.com",
   github: {
@@ -29,18 +26,6 @@ const demoConfig = {
     repository: "caprica",
     bootloaderPath: "charts/bootloader",
     bootloaders: ["infrastructure", "security"],
-  },
-  nodeGroup: {
-    minSize: 2,
-    maxSize: 4,
-    desiredSize: 2,
-    instanceType: "t3.medium",
-    rootVolumeSize: 100,
-  },
-  argocd: {
-    version: "7.8.23",
-    appsVersion: "2.0.2",
-    enabled: true,
   },
   tags: {
     Environment: "demo",
