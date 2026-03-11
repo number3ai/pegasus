@@ -82,11 +82,11 @@
         "@pulumi/eks": "^3.8.1",
         "@pulumi/github": "^6.7.0",
         "@pulumi/kubernetes": "^4.0.0",
-        "@pulumi/pulumi": "^3.160.0",
+        "@pulumi/pulumi": "^3.225.1",
         "@pulumi/random": "^4.18.0",
         "@pulumi/tls": "^5.1.1",
         "buffer": "^6.0.3",
-        "js-yaml": "^4.1.0"
+        "js-yaml": "^4.1.1"
     },
     "engines": {
         "node": ">=18.0.0",
