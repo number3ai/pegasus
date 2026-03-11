@@ -1,0 +1,108 @@
+{
+    "name": "pegasus-eks",
+    "version": "1.2.0",
+    "description": "Production-ready AWS EKS infrastructure platform with enterprise-grade add-ons and observability",
+    "main": "index.ts",
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf bin/",
+        "preview": "pulumi preview",
+        "up": "pulumi up",
+        "down": "pulumi destroy",
+        "refresh": "pulumi refresh",
+        "export": "pulumi stack export",
+        "import": "pulumi stack import",
+        "logs": "pulumi logs",
+        "config": "pulumi config",
+        "stack": "pulumi stack",
+        "validate": "tsc --noEmit",
+        "lint": "eslint src/**/*.ts",
+        "lint:fix": "eslint src/**/*.ts --fix",
+        "format": "prettier --write src/**/*.ts",
+        "format:check": "prettier --check src/**/*.ts",
+        "test": "echo \"No tests specified\" && exit 0",
+        "postinstall": "npm run validate",
+        "security:audit": "npm audit",
+        "security:audit:fix": "npm audit fix",
+        "security:trivy": "trivy fs --security-checks vuln,config,secret .",
+        "security:trivy:ci": "trivy fs --security-checks vuln,config,secret --exit-code 1 --severity HIGH,CRITICAL .",
+        "security:trivy:docker": "trivy image --security-checks vuln,config,secret node:18-alpine",
+        "security:trivy:full": "npm run security:trivy && npm run security:audit",
+        "security:check": "npm run security:audit && npm run security:trivy:ci",
+        "deps:check": "npm outdated",
+        "deps:update": "npm update",
+        "deps:update:major": "npx npm-check-updates -u",
+        "deps:install": "npm install",
+        "deps:clean": "npm prune",
+        "deps:audit": "npm audit --audit-level=moderate",
+        "deps:fix": "npm audit fix --force",
+        "quality:check": "npm run lint && npm run format:check && npm run validate",
+        "quality:fix": "npm run lint:fix && npm run format",
+        "ci:security": "npm run security:check",
+        "ci:quality": "npm run quality:check",
+        "ci:build": "npm run build",
+        "ci:test": "npm run test",
+        "ci:full": "npm run ci:security && npm run ci:quality && npm run ci:build && npm run ci:test",
+        "precommit": "npm run quality:fix && npm run security:audit",
+        "prepare": "husky install"
+    },
+    "keywords": [
+        "aws",
+        "eks",
+        "kubernetes",
+        "pulumi",
+        "infrastructure",
+        "gitops",
+        "argocd",
+        "monitoring",
+        "observability"
+    ],
+    "author": "Pegasus Team",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/number3ai/pegasus.git"
+    },
+    "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^22",
+        "@typescript-eslint/eslint-plugin": "^6.0.0",
+        "@typescript-eslint/parser": "^6.0.0",
+        "eslint": "^8.0.0",
+        "eslint-config-prettier": "^9.0.0",
+        "eslint-plugin-prettier": "^5.0.0",
+        "husky": "^8.0.0",
+        "lint-staged": "^15.0.0",
+        "prettier": "^3.0.0",
+        "typescript": "^5.8.2"
+    },
+    "dependencies": {
+        "@pulumi/aws": "^6.75.0",
+        "@pulumi/awsx": "^2.21.1",
+        "@pulumi/eks": "^3.8.1",
+        "@pulumi/github": "^6.7.0",
+        "@pulumi/kubernetes": "^4.0.0",
+        "@pulumi/pulumi": "^3.160.0",
+        "@pulumi/random": "^4.18.0",
+        "@pulumi/tls": "^5.1.1",
+        "buffer": "^6.0.3",
+        "js-yaml": "^4.1.0"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=8.0.0"
+    },
+    "pulumi": {
+        "template": "aws-typescript",
+        "description": "Production-ready AWS EKS infrastructure platform"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,md,yml,yaml}": [
+            "prettier --write"
+        ]
+    }
+}

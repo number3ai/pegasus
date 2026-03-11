@@ -1,0 +1,15 @@
+name: pegasus-eks-module
+description: Reusable EKS cluster module for Pegasus infrastructure
+runtime:
+  name: nodejs
+  options:
+    packagemanager: npm
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: aws-typescript
+      component: eks
+      service: kubernetes
+      cloud: aws
+      type: module
+      architecture: infrastructure
